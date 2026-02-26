@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portavio — Portfolio Intelligence for Engineering Teams</title>
+    <meta name="description" content="Portavio surfaces what Jira buries — real-time risk, team load, epic dependencies, and predictability across every project. 5-minute setup.">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --brand: #5b6af0;
+            --brand-dark: #4452d4;
+            --brand-light: #7c89f5;
+            --accent: #8b5cf6;
+            --bg: #0a0d1a;
+            --bg2: #0f1323;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 13, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+            text-decoration: none;
+        }
+        .logo svg { width: 32px; height: 32px; }
+        .logo span { color: var(--brand-light); }
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+        .nav-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta {
+            display: flex;
+            gap: 1rem;
+        }
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--brand), var(--accent));
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(91, 106, 240, 0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--text);
+        }
+        .btn-outline:hover {
+            border-color: var(--brand);
+            background: rgba(91, 106, 240, 0.1);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 180px 2rem 120px;
+            background: 
+                radial-gradient(ellipse at 60% 0%, rgba(91, 106, 240, 0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 10% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                var(--bg);
+        }
+        .hero-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(91, 106, 240, 0.1);
+            border: 1px solid rgba(91, 106, 240, 0.2);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--brand-light);
+            margin-bottom: 2rem;
+        }
+        .hero h1 {
+            font-size: 64px;
+            font-weight: 900;
+            line-height: 1.1;
+            letter-spacing: -2px;
+            margin-bottom: 1.5rem;
+        }
+        .hero h1 .gradient {
+            background: linear-gradient(135deg, var(--brand-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p {
+            font-size: 20px;
+            color: var(--muted);
+            max-width: 700px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.7;
+        }
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+        .hero-cta .btn {
+            padding: 1rem 2rem;
+            font-size: 16px;
+        }
+        .social-proof {
+            font-size: 14px;
+            color: #334155;
+        }
+        .social-proof strong {
+            color: var(--muted);
+        }
+
+        /* Features */
+        .features {
+            padding: 120px 2rem;
+            background: var(--bg2);
+        }
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+        .section-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(91, 106, 240, 0.1);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--brand-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+        .section-header h2 {
+            font-size: 42px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 1rem;
+        }
+        .section-header p {
+            font-size: 18px;
+            color: var(--muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+        .feature-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2.5rem;
+            transition: all 0.3s;
+        }
+        .feature-card:hover {
+            border-color: rgba(91, 106, 240, 0.3);
+            background: rgba(91, 106, 240, 0.05);
+            transform: translateY(-4px);
+        }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--brand), var(--accent));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 1.5rem;
+        }
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+        }
+        .feature-card p {
+            font-size: 15px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* Pricing */
+        .pricing {
+            padding: 120px 2rem;
+            background: var(--bg);
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            position: relative;
+        }
+        .pricing-card.popular {
+            border-color: var(--brand);
+            background: rgba(91, 106, 240, 0.05);
+            transform: scale(1.05);
+        }
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--brand), var(--accent));
+            color: white;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .pricing-card h3 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .pricing-card .desc {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+        .price {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 0.5rem;
+        }
+        .price span {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--muted);
+        }
+        .price-note {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+        .pricing-features li {
+            padding: 0.8rem 0;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+        .check {
+            color: var(--success);
+            font-size: 18px;
+        }
+        .pricing-card .btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 15px;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 120px 2rem;
+            background: linear-gradient(135deg, rgba(91, 106, 240, 0.1), rgba(139, 92, 246, 0.05));
+        }
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .cta h2 {
+            font-size: 48px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin-bottom: 1.5rem;
+        }
+        .cta p {
+            font-size: 18px;
+            color: var(--muted);
+            margin-bottom: 2.5rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 60px 2rem 40px;
+            background: var(--bg2);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+        .footer-brand {
+            max-width: 300px;
+        }
+        .footer-brand .logo {
+            margin-bottom: 1rem;
+        }
+        .footer-brand p {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+        .footer-links h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        .footer-links ul {
+            list-style: none;
+        }
+        .footer-links li {
+            margin-bottom: 0.7rem;
+        }
+        .footer-links a {
+            font-size: 14px;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .footer-links a:hover {
+            color: var(--brand-light);
+        }
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #334155;
+        }
+        .footer-legal {
+            display: flex;
+            gap: 2rem;
+        }
+        .footer-legal a {
+            color: #334155;
+            text-decoration: none;
+        }
+        .footer-legal a:hover {
+            color: var(--muted);
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero h1 { font-size: 40px; }
+            .hero p { font-size: 16px; }
+            .feature-grid,
+            .pricing-grid,
+            .footer-container {
+                grid-template-columns: 1fr;
+            }
+            .pricing-card.popular {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+    <div class="nav-container">
+        <a href="/" class="logo">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="lg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#5b6af0"/>
+                        <stop offset="1" stop-color="#8b5cf6"/>
+                    </linearGradient>
+                </defs>
+                <path d="M24 3L42 13.5V34.5L24 45L6 34.5V13.5L24 3Z" fill="url(#lg)" opacity="0.9"/>
+                <path d="M24 12 L26 22 L24 20 L22 22 Z" fill="white" opacity="0.95"/>
+                <path d="M24 36 L22 26 L24 28 L26 26 Z" fill="white" opacity="0.5"/>
+                <path d="M12 24 L22 22 L20 24 L22 26 Z" fill="white" opacity="0.5"/>
+                <path d="M36 24 L26 26 L28 24 L26 22 Z" fill="white" opacity="0.5"/>
+                <circle cx="24" cy="24" r="2.5" fill="white"/>
+            </svg>
+            Port<span>avio</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="/docs">Docs</a></li>
+            <li><a href="/changelog">Changelog</a></li>
+        </ul>
+        <div class="nav-cta">
+            <a href="/login.html" class="btn btn-outline">Sign In</a>
+            <a href="/login.html?register=true" class="btn btn-primary">Start Free Trial</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-container">
+        <div class="badge">
+            ✨ Now with multi-tenancy & Stripe billing
+        </div>
+        <h1>
+            Your Jira portfolio,<br>
+            <span class="gradient">finally visible.</span>
+        </h1>
+        <p>
+            Portavio surfaces what Jira buries — real-time risk, team load, epic dependencies, and predictability across every project. 5-minute setup, no code required.
+        </p>
+        <div class="hero-cta">
+            <a href="/login.html?register=true" class="btn btn-primary">Start 14-Day Free Trial →</a>
+            <a href="#features" class="btn btn-outline">See How It Works</a>
+        </div>
+        <div class="social-proof">
+            Trusted by engineering teams at <strong>50+ companies</strong>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="features" id="features">
+    <div class="section-container">
+        <div class="section-header">
+            <span class="section-tag">Features</span>
+            <h2>Everything you need to see your portfolio clearly</h2>
+            <p>Portavio auto-detects risks, maps ownership, and tracks velocity — all without changing how your teams use Jira.</p>
+        </div>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚠️</div>
+                <h3>Auto-Detect Risks & Blockers</h3>
+                <p>No manual tagging required. Portavio automatically identifies risks and blockers from Jira labels, issue status, and priorities.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Team → Project → Epic Mapping</h3>
+                <p>Explicit ownership relationships. See exactly which teams own which epics, and how work is distributed across projects.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>Velocity & Predictability</h3>
+                <p>Track team velocity over time and calculate predictability scores. Identify which teams deliver consistently vs. which are struggling.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔗</div>
+                <h3>Cross-Project Dependencies</h3>
+                <p>Visual dependency graph shows how epics block each other across teams and projects. Spot bottlenecks before they cause delays.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Real-Time Portfolio Health</h3>
+                <p>Live dashboard shows project health, epic progress, team load, and open risks — all in one place, always up to date.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>5-Minute Setup</h3>
+                <p>Connect your Jira instance, sync once, and you're done. No plugins to install, no workflow changes, no training required.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing -->
+<section class="pricing" id="pricing">
+    <div class="section-container">
+        <div class="section-header">
+            <span class="section-tag">Pricing</span>
+            <h2>Simple, transparent pricing</h2>
+            <p>Start free, upgrade when you're ready. All plans include 14-day free trial.</p>
+        </div>
+        <div class="pricing-grid">
+            <!-- Starter -->
+            <div class="pricing-card">
+                <h3>Starter</h3>
+                <p class="desc">For small engineering teams</p>
+                <div class="price">$49<span>/month</span></div>
+                <p class="price-note">Billed monthly</p>
+                <ul class="pricing-features">
+                    <li><span class="check">✓</span> Up to 10 users</li>
+                    <li><span class="check">✓</span> Up to 20 projects</li>
+                    <li><span class="check">✓</span> Hourly auto-sync</li>
+                    <li><span class="check">✓</span> Risk & blocker detection</li>
+                    <li><span class="check">✓</span> Velocity tracking</li>
+                    <li><span class="check">✓</span> Email support</li>
+                </ul>
+                <a href="/login.html?register=true&plan=starter" class="btn btn-outline">Start Free Trial</a>
+            </div>
+
+            <!-- Pro (Popular) -->
+            <div class="pricing-card popular">
+                <div class="popular-badge">Most Popular</div>
+                <h3>Pro</h3>
+                <p class="desc">For growing engineering orgs</p>
+                <div class="price">$149<span>/month</span></div>
+                <p class="price-note">Billed monthly</p>
+                <ul class="pricing-features">
+                    <li><span class="check">✓</span> Up to 50 users</li>
+                    <li><span class="check">✓</span> Unlimited projects</li>
+                    <li><span class="check">✓</span> 15-minute auto-sync</li>
+                    <li><span class="check">✓</span> Everything in Starter</li>
+                    <li><span class="check">✓</span> Predictability scores</li>
+                    <li><span class="check">✓</span> Team analytics</li>
+                    <li><span class="check">✓</span> Priority email support</li>
+                </ul>
+                <a href="/login.html?register=true&plan=pro" class="btn btn-primary">Start Free Trial</a>
+            </div>
+
+            <!-- Enterprise -->
+            <div class="pricing-card">
+                <h3>Enterprise</h3>
+                <p class="desc">For large organizations</p>
+                <div class="price">$499<span>/month</span></div>
+                <p class="price-note">Billed annually</p>
+                <ul class="pricing-features">
+                    <li><span class="check">✓</span> Unlimited users</li>
+                    <li><span class="check">✓</span> Unlimited projects</li>
+                    <li><span class="check">✓</span> 5-minute auto-sync</li>
+                    <li><span class="check">✓</span> Everything in Pro</li>
+                    <li><span class="check">✓</span> SSO / SAML</li>
+                    <li><span class="check">✓</span> Dedicated support</li>
+                    <li><span class="check">✓</span> Custom integrations</li>
+                </ul>
+                <a href="/login.html?register=true&plan=enterprise" class="btn btn-outline">Contact Sales</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+    <div class="cta-container">
+        <h2>Ready to see your portfolio clearly?</h2>
+        <p>Start your 14-day free trial. No credit card required. Set up in 5 minutes.</p>
+        <div class="hero-cta">
+            <a href="/login.html?register=true" class="btn btn-primary">Start Free Trial →</a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="footer-container">
+        <div class="footer-brand">
+            <a href="/" class="logo">
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="lg2" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#5b6af0"/>
+                            <stop offset="1" stop-color="#8b5cf6"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M24 3L42 13.5V34.5L24 45L6 34.5V13.5L24 3Z" fill="url(#lg2)" opacity="0.9"/>
+                    <path d="M24 12 L26 22 L24 20 L22 22 Z" fill="white" opacity="0.95"/>
+                    <path d="M24 36 L22 26 L24 28 L26 26 Z" fill="white" opacity="0.5"/>
+                    <path d="M12 24 L22 22 L20 24 L22 26 Z" fill="white" opacity="0.5"/>
+                    <path d="M36 24 L26 26 L28 24 L26 22 Z" fill="white" opacity="0.5"/>
+                    <circle cx="24" cy="24" r="2.5" fill="white"/>
+                </svg>
+                Port<span>avio</span>
+            </a>
+            <p>Portfolio intelligence for engineering teams. See what Jira buries.</p>
+        </div>
+        <div class="footer-links">
+            <h4>Product</h4>
+            <ul>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="/changelog">Changelog</a></li>
+                <li><a href="/roadmap">Roadmap</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>Resources</h4>
+            <ul>
+                <li><a href="/docs">Documentation</a></li>
+                <li><a href="/guides">Guides</a></li>
+                <li><a href="/api">API Reference</a></li>
+                <li><a href="/support">Support</a></li>
+            </ul>
+        </div>
+        <div class="footer-links">
+            <h4>Company</h4>
+            <ul>
+                <li><a href="/about">About</a></li>
+                <li><a href="/blog">Blog</a></li>
+                <li><a href="/careers">Careers</a></li>
+                <li><a href="/contact">Contact</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <div>© 2025 Portavio. All rights reserved.</div>
+        <div class="footer-legal">
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+            <a href="/security">Security</a>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

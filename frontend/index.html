@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portavio — Portfolio Intelligence for Engineering Teams</title>
+    <meta name="description" content="Portavio gives engineering leaders real-time visibility across their Jira portfolio. Track risks, blockers, team velocity, and epic dependencies in one place.">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --brand:       #5b6af0;
+            --brand-dark:  #4452d4;
+            --brand-light: #7c89f5;
+            --accent:      #8b5cf6;
+            --bg:          #0c0e1a;
+            --bg2:         #12152a;
+            --bg3:         #1a1e35;
+            --border:      rgba(255,255,255,0.07);
+            --text:        #e2e8f0;
+            --muted:       #64748b;
+            --success:     #22c55e;
+            --warning:     #f59e0b;
+            --danger:      #ef4444;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+        /* ── LOGO SVG ── */
+        .portavio-logo {
+            display:flex; align-items:center; gap:10px;
+        }
+        .portavio-logo svg { width:32px; height:32px; flex-shrink:0; }
+        .portavio-logo .name { font-size:19px; font-weight:800; letter-spacing:-0.5px; color:#fff; }
+        .portavio-logo .name span { color:var(--brand-light); }
+
+        /* ── AUTH ── */
+        #auth-screen {
+            display:flex; align-items:center; justify-content:center;
+            min-height:100vh;
+            background: radial-gradient(ellipse at 60% 0%, rgba(91,106,240,0.18) 0%, transparent 60%),
+                        radial-gradient(ellipse at 10% 80%, rgba(139,92,246,0.12) 0%, transparent 50%),
+                        var(--bg);
+        }
+        .auth-wrap { display:flex; width:900px; min-height:520px; border-radius:24px; overflow:hidden; box-shadow:0 40px 80px rgba(0,0,0,0.6); border:1px solid var(--border); }
+
+        .auth-left {
+            flex:1; background:linear-gradient(145deg,rgba(91,106,240,0.15),rgba(139,92,246,0.08));
+            padding:50px 45px; display:flex; flex-direction:column; justify-content:space-between;
+            border-right:1px solid var(--border);
+        }
+        .auth-left-tagline { margin-top:40px; }
+        .auth-left-tagline h2 { font-size:28px; font-weight:800; line-height:1.3; color:#fff; margin-bottom:14px; }
+        .auth-left-tagline h2 span { color:var(--brand-light); }
+        .auth-left-tagline p { font-size:14px; color:var(--muted); line-height:1.7; }
+        .auth-feature { display:flex; align-items:center; gap:10px; margin-top:20px; font-size:13px; color:#94a3b8; }
+        .auth-feature-dot { width:6px; height:6px; border-radius:50%; background:var(--brand-light); flex-shrink:0; }
+
+        .auth-right { width:380px; background:var(--bg2); padding:50px 40px; display:flex; flex-direction:column; justify-content:center; }
+        .auth-right h3 { font-size:22px; font-weight:700; color:#fff; margin-bottom:6px; }
+        .auth-right>p { font-size:13px; color:var(--muted); margin-bottom:28px; }
+
+        .auth-tabs { display:flex; background:rgba(0,0,0,0.3); border-radius:10px; padding:4px; margin-bottom:24px; }
+        .auth-tab { flex:1; padding:9px; text-align:center; border:none; background:transparent; color:var(--muted); cursor:pointer; border-radius:7px; font-size:13px; font-weight:600; transition:all .25s; }
+        .auth-tab.active { background:var(--brand); color:#fff; }
+
+        .form-group { margin-bottom:16px; }
+        .form-group label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500; letter-spacing:0.3px; }
+        .form-group input { width:100%; padding:11px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:9px; color:#fff; font-size:14px; outline:none; transition:border .2s; font-family:inherit; }
+        .form-group input:focus { border-color:var(--brand); background:rgba(91,106,240,0.05); }
+
+        .btn-brand { width:100%; padding:12px; background:linear-gradient(135deg,var(--brand),var(--accent)); border:none; border-radius:9px; color:#fff; font-size:14px; font-weight:700; cursor:pointer; transition:all .25s; font-family:inherit; letter-spacing:0.2px; }
+        .btn-brand:hover { transform:translateY(-2px); box-shadow:0 10px 30px rgba(91,106,240,0.4); }
+
+        .auth-footer { margin-top:20px; font-size:11px; color:#334155; text-align:center; }
+        .auth-error { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); color:#f87171; padding:9px 13px; border-radius:8px; font-size:12px; margin-top:12px; display:none; }
+
+        /* ── APP LAYOUT ── */
+        #app-screen { display:none; }
+
+        .sidebar {
+            position:fixed; top:0; left:0; width:230px; height:100vh;
+            background:var(--bg2); border-right:1px solid var(--border);
+            padding:0; z-index:100; overflow-y:auto; display:flex; flex-direction:column;
+        }
+        .sidebar-header { padding:22px 20px; border-bottom:1px solid var(--border); }
+        .sidebar-footer { margin-top:auto; padding:16px 20px; border-top:1px solid var(--border); }
+        .sidebar-user { font-size:12px; color:var(--muted); }
+        .sidebar-user strong { display:block; color:var(--text); font-size:13px; margin-bottom:2px; }
+
+        .nav-section { padding:18px 20px 6px; font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:#2d3a52; font-weight:600; }
+        .nav-item { display:flex; align-items:center; gap:11px; padding:9px 20px; color:#4a5568; cursor:pointer; border-left:2px solid transparent; transition:all .15s; font-size:13px; font-weight:500; }
+        .nav-item:hover { color:var(--text); background:rgba(255,255,255,0.03); }
+        .nav-item.active { color:var(--brand-light); border-left-color:var(--brand); background:rgba(91,106,240,0.07); }
+        .nav-icon { font-size:15px; width:18px; text-align:center; }
+
+        .main-content { margin-left:230px; padding:28px 32px; min-height:100vh; }
+
+        /* ── TOPBAR ── */
+        .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; padding-bottom:18px; border-bottom:1px solid var(--border); }
+        .topbar-left h1 { font-size:22px; font-weight:700; color:#fff; }
+        .topbar-left .sync-status { font-size:11px; color:var(--muted); margin-top:3px; }
+        .topbar-actions { display:flex; gap:10px; align-items:center; }
+
+        .btn-sync { padding:8px 18px; background:var(--brand); border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; font-family:inherit; }
+        .btn-sync:hover { background:var(--brand-dark); }
+        .btn-sync:disabled { opacity:0.5; cursor:not-allowed; }
+        .btn-outline { padding:8px 16px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--muted); font-size:13px; cursor:pointer; transition:all .2s; font-family:inherit; }
+        .btn-outline:hover { border-color:rgba(239,68,68,.4); color:#f87171; }
+
+        .conn-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:20px; font-size:11px; font-weight:600; }
+        .conn-on  { background:rgba(34,197,94,.1);  color:#4ade80; border:1px solid rgba(34,197,94,.2); }
+        .conn-off { background:rgba(239,68,68,.1); color:#f87171; border:1px solid rgba(239,68,68,.2); }
+
+        /* ── CONNECT PANEL ── */
+        .connect-panel { background:linear-gradient(135deg,rgba(91,106,240,.08),rgba(139,92,246,.05)); border:1px solid rgba(91,106,240,.2); border-radius:16px; padding:24px; margin-bottom:24px; }
+        .connect-panel h3 { color:#fff; margin-bottom:4px; font-size:15px; }
+        .connect-panel>p { color:var(--muted); font-size:13px; margin-bottom:18px; }
+        .connect-form { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+        .connect-form .fg { flex:1; min-width:170px; }
+        .connect-form .fg label { display:block; font-size:11px; color:var(--muted); margin-bottom:5px; }
+        .connect-form .fg input { width:100%; padding:10px 13px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; color:#fff; font-size:13px; outline:none; font-family:inherit; }
+        .connect-form .fg input:focus { border-color:var(--brand); }
+        .btn-connect { padding:10px 22px; background:var(--brand); border:none; border-radius:8px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap; font-family:inherit; }
+
+        /* ── STAT CARDS ── */
+        .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+        .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:24px; }
+
+        .card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:20px; transition:border-color .2s; margin-bottom:16px; }
+        .card:hover { border-color:rgba(91,106,240,.25); }
+        .card-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:16px; }
+
+        .stat-card { position:relative; overflow:hidden; }
+        .stat-card::before { content:''; position:absolute; top:-20px; right:-20px; width:80px; height:80px; border-radius:50%; opacity:0.08; }
+        .sc-purple::before { background:#5b6af0; }
+        .sc-violet::before { background:#8b5cf6; }
+        .sc-cyan::before   { background:#06b6d4; }
+        .sc-green::before  { background:#10b981; }
+        .stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; font-weight:600; }
+        .stat-value { font-size:38px; font-weight:800; margin:8px 0 4px; letter-spacing:-1px; }
+        .stat-sub { font-size:11px; color:#4ade80; font-weight:500; }
+
+        /* ── DATA ROWS ── */
+        .data-row { display:flex; align-items:center; padding:11px 14px; background:rgba(255,255,255,0.02); border-radius:9px; margin-bottom:7px; border:1px solid rgba(255,255,255,0.03); gap:10px; transition:all .15s; }
+        .data-row:hover { background:rgba(91,106,240,.05); border-color:rgba(91,106,240,.15); }
+
+        /* ── PROGRESS ── */
+        .pb-wrap { background:rgba(255,255,255,0.05); border-radius:6px; height:5px; overflow:hidden; margin-top:5px; }
+        .pb { height:100%; border-radius:6px; transition:width .4s; }
+        .pb-brand  { background:linear-gradient(90deg,var(--brand),var(--brand-light)); }
+        .pb-green  { background:linear-gradient(90deg,#16a34a,#4ade80); }
+        .pb-yellow { background:linear-gradient(90deg,#d97706,#facc15); }
+        .pb-red    { background:linear-gradient(90deg,#dc2626,#f87171); }
+
+        /* ── BADGES ── */
+        .badge { display:inline-flex; align-items:center; padding:2px 9px; border-radius:10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+        .b-ok   { background:rgba(34,197,94,.12);  color:#4ade80; }
+        .b-warn { background:rgba(245,158,11,.12); color:#fbbf24; }
+        .b-bad  { background:rgba(239,68,68,.12);  color:#f87171; }
+        .b-info { background:rgba(91,106,240,.12); color:#93a4fb; }
+        .b-gray { background:rgba(100,116,139,.15);color:#94a3b8; }
+
+        .tag { display:inline-flex; align-items:center; padding:2px 9px; border-radius:6px; font-size:11px; background:rgba(91,106,240,.1); color:#93a4fb; margin:2px; }
+        .tag-owner { background:rgba(91,106,240,.2); color:#a5b4fc; font-weight:600; }
+
+        /* ── RISK / BLOCKER ── */
+        .risk-row { display:flex; gap:12px; padding:13px; background:rgba(245,158,11,.04); border:1px solid rgba(245,158,11,.12); border-radius:10px; margin-bottom:9px; align-items:flex-start; }
+        .block-row { display:flex; gap:12px; padding:13px; background:rgba(239,68,68,.04); border:1px solid rgba(239,68,68,.12); border-radius:10px; margin-bottom:9px; align-items:flex-start; }
+
+        /* ── DEPENDENCY ── */
+        .dep-row { display:flex; align-items:center; gap:9px; padding:11px 14px; background:rgba(255,255,255,0.02); border-radius:9px; margin-bottom:7px; border:1px solid rgba(255,255,255,0.03); font-size:13px; flex-wrap:wrap; }
+        .dep-type { font-size:10px; color:var(--brand-light); background:rgba(91,106,240,.1); padding:2px 8px; border-radius:5px; font-weight:700; text-transform:uppercase; }
+
+        /* ── PREDICTABILITY ── */
+        .pred-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+        .pred-card { text-align:center; padding:22px 12px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid var(--border); }
+        .pred-score { font-size:40px; font-weight:800; letter-spacing:-1px; }
+        .s-hi { color:#4ade80; } .s-md { color:#facc15; } .s-lo { color:#f87171; }
+
+        .chart-wrap { position:relative; height:260px; margin-top:14px; }
+        .page { display:none; } .page.active { display:block; }
+        .loading { text-align:center; padding:50px; color:var(--muted); font-size:14px; }
+        .empty { text-align:center; padding:50px; color:var(--muted); }
+        .empty .ei { font-size:44px; margin-bottom:14px; }
+        .empty h3 { font-size:15px; color:#94a3b8; margin-bottom:6px; }
+        .empty p  { font-size:13px; }
+
+        /* scrollbar */
+        ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:#1e2a40; border-radius:10px; }
+
+        @media(max-width:1100px){ .grid-4{grid-template-columns:repeat(2,1fr);} }
+        @media(max-width:768px) { .sidebar{display:none;} .main-content{margin-left:0;padding:20px;} .grid-4,.grid-2{grid-template-columns:1fr;} .auth-wrap{flex-direction:column;width:95%;} .auth-left{display:none;} .auth-right{width:100%;} }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ AUTH ═══════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-left">
+      <div class="portavio-logo">
+        <!-- Portavio logo: compass rose inside hexagon -->
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#5b6af0"/>
+              <stop offset="1" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+          <!-- Hexagon background -->
+          <path d="M24 3L42 13.5V34.5L24 45L6 34.5V13.5L24 3Z" fill="url(#lg1)" opacity="0.9"/>
+          <!-- Compass rose -->
+          <path d="M24 12 L26 22 L24 20 L22 22 Z" fill="white" opacity="0.95"/>
+          <path d="M24 36 L22 26 L24 28 L26 26 Z" fill="white" opacity="0.5"/>
+          <path d="M12 24 L22 22 L20 24 L22 26 Z" fill="white" opacity="0.5"/>
+          <path d="M36 24 L26 26 L28 24 L26 22 Z" fill="white" opacity="0.5"/>
+          <circle cx="24" cy="24" r="2.5" fill="white"/>
+        </svg>
+        <div class="name">Port<span>avio</span></div>
+      </div>
+      <div class="auth-left-tagline">
+        <h2>Your Jira portfolio,<br><span>finally visible.</span></h2>
+        <p>Portavio surfaces what Jira buries — real-time risk, team load, epic dependencies, and predictability across every project.</p>
+        <div class="auth-feature"><div class="auth-feature-dot"></div>Auto-detect risks & blockers from Jira labels</div>
+        <div class="auth-feature"><div class="auth-feature-dot"></div>Team ↔ Project ↔ Epic ownership mapping</div>
+        <div class="auth-feature"><div class="auth-feature-dot"></div>Velocity trends & predictability scores</div>
+        <div class="auth-feature"><div class="auth-feature-dot"></div>Cross-project dependency graph</div>
+        <div class="auth-feature"><div class="auth-feature-dot"></div>5-minute setup, no code required</div>
+      </div>
+      <div style="font-size:11px;color:#1e2a40">portavio.io</div>
+    </div>
+    <div class="auth-right">
+      <h3>Welcome back</h3>
+      <p>Sign in to your Portavio workspace</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab" onclick="switchTab('register')">Register</button>
+      </div>
+      <div id="login-form">
+        <div class="form-group"><label>Work Email</label><input type="email" id="login-email" placeholder="you@company.com"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+        <button class="btn-brand" onclick="login()">Sign In to Portavio →</button>
+      </div>
+      <div id="register-form" style="display:none">
+        <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" placeholder="Jane Smith"></div>
+        <div class="form-group"><label>Work Email</label><input type="email" id="reg-email" placeholder="you@company.com"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="Min. 8 characters"></div>
+        <button class="btn-brand" onclick="register()">Create Account →</button>
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+      <div class="auth-footer">By signing in you agree to Portavio's terms of service.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ APP ════════════════════════════════════ -->
+<div id="app-screen">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="portavio-logo">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:26px;height:26px">
+          <defs><linearGradient id="lg2" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse"><stop stop-color="#5b6af0"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+          <path d="M24 3L42 13.5V34.5L24 45L6 34.5V13.5L24 3Z" fill="url(#lg2)" opacity="0.9"/>
+          <path d="M24 12 L26 22 L24 20 L22 22 Z" fill="white" opacity="0.95"/>
+          <path d="M24 36 L22 26 L24 28 L26 26 Z" fill="white" opacity="0.5"/>
+          <path d="M12 24 L22 22 L20 24 L22 26 Z" fill="white" opacity="0.5"/>
+          <path d="M36 24 L26 26 L28 24 L26 22 Z" fill="white" opacity="0.5"/>
+          <circle cx="24" cy="24" r="2.5" fill="white"/>
+        </svg>
+        <div class="name" style="font-size:16px">Port<span>avio</span></div>
+      </div>
+    </div>
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active"  onclick="showPage('overview',this)"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('projects',this)"><span class="nav-icon">📁</span> Projects</div>
+    <div class="nav-item" onclick="showPage('teams',this)"><span class="nav-icon">👥</span> Teams</div>
+    <div class="nav-section">Delivery</div>
+    <div class="nav-item" onclick="showPage('epics',this)"><span class="nav-icon">🎯</span> Epics</div>
+    <div class="nav-item" onclick="showPage('dependencies',this)"><span class="nav-icon">🔗</span> Dependencies</div>
+    <div class="nav-item" onclick="showPage('timeline',this)"><span class="nav-icon">📅</span> Timeline</div>
+    <div class="nav-section">Health</div>
+    <div class="nav-item" onclick="showPage('risks',this)"><span class="nav-icon">⚠️</span> Risks</div>
+    <div class="nav-item" onclick="showPage('blockers',this)"><span class="nav-icon">🚫</span> Blockers</div>
+    <div class="nav-section">Analytics</div>
+    <div class="nav-item" onclick="showPage('velocity',this)"><span class="nav-icon">📈</span> Velocity</div>
+    <div class="nav-item" onclick="showPage('predictability',this)"><span class="nav-icon">🎲</span> Predictability</div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user"><strong id="user-name-display">—</strong>Signed in</div>
+      <button class="btn-outline" style="width:100%;margin-top:10px;font-size:12px" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1 id="page-title">Dashboard</h1>
+        <div class="sync-status" id="sync-status">Not synced yet</div>
+      </div>
+      <div class="topbar-actions">
+        <div id="conn-badge" class="conn-badge conn-off">● Not Connected</div>
+        <button class="btn-sync" id="sync-btn" onclick="triggerSync()">🔄 Sync Jira</button>
+      </div>
+    </div>
+
+    <!-- Connect panel -->
+    <div class="connect-panel" id="connect-panel">
+      <h3>🔌 Connect Your Jira Instance</h3>
+      <p>Enter your Jira credentials to start pulling real portfolio data into Portavio.</p>
+      <div class="connect-form">
+        <div class="fg"><label>Jira URL</label><input type="text" id="jira-url" placeholder="https://company.atlassian.net"></div>
+        <div class="fg"><label>Email</label><input type="email" id="jira-email" placeholder="you@company.com"></div>
+        <div class="fg"><label>API Token</label><input type="password" id="jira-token" placeholder="Your Jira API token"></div>
+        <button class="btn-connect" onclick="connectJira()">Connect →</button>
+      </div>
+      <p style="margin-top:10px;font-size:11px;color:#334155">Get your API token at: <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--brand-light)">id.atlassian.com ↗</a></p>
+    </div>
+
+    <!-- Pages -->
+    <div class="page active" id="page-overview">
+      <div class="grid-4" id="ov-stats"></div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">📁 Project Health</div><div id="ov-projects"></div></div>
+        <div class="card"><div class="card-title">👥 Team Load</div><div id="ov-teams"></div></div>
+      </div>
+    </div>
+    <div class="page" id="page-projects"><div id="projects-list"></div></div>
+    <div class="page" id="page-teams"><div id="teams-list"></div></div>
+    <div class="page" id="page-epics"><div id="epics-list"></div></div>
+    <div class="page" id="page-dependencies"><div class="card"><div class="card-title">🔗 Cross-Project Dependencies</div><div id="deps-list"></div></div></div>
+    <div class="page" id="page-timeline"><div class="card"><div class="card-title">📅 Roadmap & Milestones</div><div id="timeline-list"></div></div></div>
+    <div class="page" id="page-risks"><div class="card"><div class="card-title">⚠️ Open Risks</div><div id="risks-list"></div></div></div>
+    <div class="page" id="page-blockers"><div class="card"><div class="card-title">🚫 Active Blockers</div><div id="blockers-list"></div></div></div>
+    <div class="page" id="page-velocity"><div class="card"><div class="card-title">📈 Team Velocity Trends</div><div class="chart-wrap"><canvas id="vchart"></canvas></div></div></div>
+    <div class="page" id="page-predictability"><div class="card"><div class="card-title">🎲 Team Predictability Scores</div><div class="pred-grid" id="pred-grid"></div></div></div>
+  </main>
+</div>
+
+<script>
+// ── CONFIG ──
+const API = (location.hostname==='localhost'&&location.port==='3000')?'http://localhost:3001':'';
+let token=localStorage.getItem('pv_token')||null, uname=localStorage.getItem('pv_user')||'', vc=null, curPage='overview';
+const pgT={overview:'Dashboard',projects:'Projects',teams:'Teams',epics:'Epics',dependencies:'Dependencies',timeline:'Timeline / Roadmap',risks:'Risk Register',blockers:'Active Blockers',velocity:'Team Velocity',predictability:'Predictability'};
+const hmap={'on-track':'ok','at-risk':'warn','blocked':'bad','active':'info','planned':'gray','in-progress':'info','done':'ok','completed':'ok','open':'warn','resolved':'ok'};
+const badge=v=>`<span class="badge b-${hmap[v?.toLowerCase()]||'gray'}">${v||'?'}</span>`;
+const bar=(p,c='pb-brand')=>`<div class="pb-wrap"><div class="pb ${c}" style="width:${Math.min(p||0,100)}%"></div></div>`;
+const lc=l=>l>=90?'pb-red':l>=75?'pb-yellow':'pb-green';
+const empty=(i,t,m)=>`<div class="empty"><div class="ei">${i}</div><h3>${t}</h3><p>${m}</p></div>`;
+
+async function api(path,method='GET',body=null){
+  const h={'Content-Type':'application/json'};
+  if(token)h['Authorization']=`Bearer ${token}`;
+  const o={method,headers:h};
+  if(body)o.body=JSON.stringify(body);
+  const r=await fetch(`${API}${path}`,o);
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error||'Request failed');
+  return d;
+}
+
+// ── AUTH ──
+function switchTab(t){
+  document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('active',(i===0)===(t==='login')));
+  document.getElementById('login-form').style.display=t==='login'?'':'none';
+  document.getElementById('register-form').style.display=t==='register'?'':'none';
+  document.getElementById('auth-error').style.display='none';
+}
+function authErr(m){const e=document.getElementById('auth-error');e.textContent=m;e.style.display='block';}
+async function login(){
+  const email=document.getElementById('login-email').value.trim(), pw=document.getElementById('login-password').value;
+  if(!email||!pw)return authErr('Email and password required');
+  try{const d=await api('/api/auth/login','POST',{email,password:pw});saveAuth(d);}catch(e){authErr(e.message);}
+}
+async function register(){
+  const name=document.getElementById('reg-name').value.trim(), email=document.getElementById('reg-email').value.trim(), pw=document.getElementById('reg-password').value;
+  if(!name||!email||!pw)return authErr('All fields required');
+  try{const d=await api('/api/auth/register','POST',{name,email,password:pw});saveAuth(d);}catch(e){authErr(e.message);}
+}
+function saveAuth(d){token=d.token;uname=d.user.name;localStorage.setItem('pv_token',token);localStorage.setItem('pv_user',uname);showApp();}
+function logout(){token=null;uname='';localStorage.removeItem('pv_token');localStorage.removeItem('pv_user');document.getElementById('auth-screen').style.display='flex';document.getElementById('app-screen').style.display='none';}
+
+// ── APP INIT ──
+function showApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('user-name-display').textContent=uname;
+  checkConn();loadPage();
+}
+async function checkConn(){
+  try{
+    const d=await api('/api/jira/status');
+    const b=document.getElementById('conn-badge');
+    if(d.connected&&d.connection.is_active){b.className='conn-badge conn-on';b.textContent='● Connected';document.getElementById('connect-panel').style.display='none';if(d.connection.last_sync)document.getElementById('sync-status').textContent=`Last sync: ${new Date(d.connection.last_sync).toLocaleString()}`;}
+    else{b.className='conn-badge conn-off';b.textContent='● Not Connected';document.getElementById('connect-panel').style.display='block';}
+  }catch(e){}
+}
+async function connectJira(){
+  const jiraUrl=document.getElementById('jira-url').value.trim(), jiraEmail=document.getElementById('jira-email').value.trim(), jiraApiToken=document.getElementById('jira-token').value.trim();
+  if(!jiraUrl||!jiraEmail||!jiraApiToken)return alert('All fields required');
+  const b=document.querySelector('.btn-connect');b.textContent='Connecting…';b.disabled=true;
+  try{await api('/api/jira/connect','POST',{jiraUrl,jiraEmail,jiraApiToken});await checkConn();alert('✅ Connected! Click "Sync Jira" to load your data.');}
+  catch(e){alert('Connection failed: '+e.message);}
+  finally{b.textContent='Connect →';b.disabled=false;}
+}
+async function triggerSync(){
+  const b=document.getElementById('sync-btn');b.textContent='⏳ Syncing…';b.disabled=true;
+  try{const d=await api('/api/jira/sync','POST');document.getElementById('sync-status').textContent=`Synced just now — ${JSON.stringify(d.stats)}`;await loadPage();}
+  catch(e){alert('Sync failed: '+e.message);}
+  finally{b.textContent='🔄 Sync Jira';b.disabled=false;}
+}
+
+// ── NAVIGATION ──
+function showPage(p,el){
+  curPage=p;
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById(`page-${p}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('page-title').textContent=pgT[p]||p;
+  loadPage();
+}
+function loadPage(){({overview:loadOv,projects:loadProjects,teams:loadTeams,epics:loadEpics,dependencies:loadDeps,timeline:loadTimeline,risks:loadRisks,blockers:loadBlockers,velocity:loadVelocity,predictability:loadPred})[curPage]?.();}
+
+// ── OVERVIEW ──
+async function loadOv(){
+  try{
+    const[ov,teams,projects]=await Promise.all([api('/api/dashboard/overview'),api('/api/dashboard/teams'),api('/api/dashboard/projects')]);
+    document.getElementById('ov-stats').innerHTML=`
+      <div class="card stat-card sc-purple"><div class="stat-label">Projects</div><div class="stat-value" style="color:var(--brand-light)">${ov.projects.total}</div><div class="stat-sub">${ov.projects.byHealth?.find(h=>h.health==='on-track')?.total||0} on track</div></div>
+      <div class="card stat-card sc-violet"><div class="stat-label">Teams</div><div class="stat-value" style="color:#a78bfa">${ov.teams.total}</div></div>
+      <div class="card stat-card sc-cyan"><div class="stat-label">Epics</div><div class="stat-value" style="color:#22d3ee">${ov.epics.total}</div></div>
+      <div class="card stat-card sc-green"><div class="stat-label">Issues Tracked</div><div class="stat-value" style="color:#4ade80">${ov.issues?.total||0}</div><div class="stat-sub">Avg velocity: ${ov.avgVelocity}</div></div>`;
+    document.getElementById('ov-projects').innerHTML=projects.projects?.length?projects.projects.map(p=>`<div class="data-row"><div style="flex:1;font-size:13px;font-weight:500">${p.project_name} <span style="font-size:10px;color:#334155">${p.jira_project_key}</span></div>${badge(p.health)}<span style="font-size:11px;color:var(--muted)">${p.team_count}t · ${p.epic_count}e</span></div>`).join(''):empty('📁','No projects','Sync Jira to see projects');
+    document.getElementById('ov-teams').innerHTML=teams.teams?.length?teams.teams.map(t=>`<div class="data-row" style="flex-direction:column;align-items:flex-start"><div style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px"><span style="font-size:13px;font-weight:500">${t.team_name}</span><span style="font-size:11px;color:var(--muted)">Load: ${t.current_load}%</span></div>${bar(t.current_load,lc(t.current_load))}</div>`).join(''):empty('👥','No teams','Sync Jira to see teams');
+  }catch(e){console.error(e);}
+}
+
+// ── PROJECTS ──
+async function loadProjects(){
+  const el=document.getElementById('projects-list');el.innerHTML='<div class="loading">Loading projects…</div>';
+  try{
+    const d=await api('/api/dashboard/projects');
+    if(!d.projects?.length){el.innerHTML=empty('📁','No projects','Connect and sync Jira');return;}
+    el.innerHTML=d.projects.map(p=>`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:13px">
+        <div><div style="font-size:16px;font-weight:700">${p.project_name} <span style="font-size:11px;color:#334155;font-weight:400">[${p.jira_project_key}]</span></div><div style="font-size:11px;color:var(--muted);margin-top:2px">${p.team_count} teams · ${p.epic_count} epics · ${p.total_story_points||0} pts</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${badge(p.health)} ${badge(p.status)} ${p.open_high_risks>0?`<span class="badge b-bad">⚠ ${p.open_high_risks} risks</span>`:''} ${p.active_blockers>0?`<span class="badge b-warn">🚫 ${p.active_blockers}</span>`:''}</div>
+      </div>
+      <div style="margin-bottom:12px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">Progress: ${p.avg_epic_progress||0}%</div>${bar(p.avg_epic_progress)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px">Teams</div>${p.teams?.length?p.teams.map(t=>`<span class="tag ${t.is_primary?'tag-owner':''}">${t.is_primary?'★ ':''} ${t.name}</span>`).join(''):'<span style="font-size:12px;color:#334155">None assigned</span>'}</div>
+        <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px">Epics</div>${p.epics?.slice(0,3).map(e=>`<div style="font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03);display:flex;justify-content:space-between"><span>${e.name}</span>${badge(e.status)}</div>`).join('')||'<span style="font-size:12px;color:#334155">None</span>'} ${p.epics?.length>3?`<div style="font-size:10px;color:#334155;margin-top:4px">+${p.epics.length-3} more</div>`:''}</div>
+      </div>
+    </div>`).join('');
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── TEAMS ──
+async function loadTeams(){
+  const el=document.getElementById('teams-list');el.innerHTML='<div class="loading">Loading teams…</div>';
+  try{
+    const d=await api('/api/dashboard/teams');
+    if(!d.teams?.length){el.innerHTML=empty('👥','No teams','Connect and sync Jira');return;}
+    el.innerHTML=d.teams.map(t=>`<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:13px">
+        <div><div style="font-size:16px;font-weight:700">${t.team_name}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${t.project_count} projects · ${t.epic_count} epics</div></div>
+        <div style="display:flex;gap:22px;text-align:center">
+          <div><div style="font-size:24px;font-weight:800;color:var(--brand-light)">${t.velocity||0}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Velocity</div></div>
+          <div><div style="font-size:24px;font-weight:800;color:${t.current_load>=90?'#f87171':t.current_load>=75?'#facc15':'#4ade80'}">${t.current_load||0}%</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Load</div></div>
+          <div><div style="font-size:24px;font-weight:800;color:${t.predictability_score>=80?'#4ade80':t.predictability_score>=60?'#facc15':'#f87171'}">${parseFloat(t.predictability_score||0).toFixed(0)}%</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Predict.</div></div>
+        </div>
+      </div>
+      ${bar(t.current_load,lc(t.current_load))}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:13px">
+        <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px">Projects</div>${t.projects?.length?t.projects.map(p=>`<span class="tag ${p.is_primary?'tag-owner':''}">${p.is_primary?'★ ':''}${p.name}</span>`).join(''):'<span style="font-size:12px;color:#334155">None</span>'}</div>
+        <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px">Owned Epics</div>${t.epics?.filter(e=>e.is_owner).slice(0,3).map(e=>`<div style="font-size:12px;padding:3px 0;display:flex;justify-content:space-between"><span>${e.epic_name}</span><span style="color:var(--brand-light)">${e.progress||0}%</span></div>`).join('')||'<span style="font-size:12px;color:#334155">None</span>'}</div>
+      </div>
+      ${t.active_blockers>0?`<div style="margin-top:10px"><span class="badge b-bad">🚫 ${t.active_blockers} active blocker${t.active_blockers>1?'s':''}</span></div>`:''}
+    </div>`).join('');
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── EPICS ──
+async function loadEpics(){
+  const el=document.getElementById('epics-list');el.innerHTML='<div class="loading">Loading epics…</div>';
+  try{
+    const d=await api('/api/dashboard/epics');
+    if(!d.epics?.length){el.innerHTML=empty('🎯','No epics','Sync Jira to see epics');return;}
+    el.innerHTML=`<div class="card"><div class="card-title">🎯 Epic Progress & Team Ownership</div>${d.epics.map(e=>`
+      <div class="data-row" style="flex-direction:column;align-items:flex-start;gap:7px">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+          <div><span style="font-weight:600;font-size:14px">${e.epic_name}</span> <span style="font-size:10px;color:#334155">${e.jira_epic_key} · ${e.project_name}</span></div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${badge(e.status)} ${e.owner_team_name?`<span class="tag">👤 ${e.owner_team_name}</span>`:''} ${e.blocks_count>0?`<span class="badge b-warn">Blocks ${e.blocks_count}</span>`:''} ${e.blocked_by_count>0?`<span class="badge b-bad">Blocked ${e.blocked_by_count}</span>`:''}</div>
+        </div>
+        <div style="width:100%">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px"><span>${e.contributing_team_count} team(s)</span><span>${e.completed_story_points||0}/${e.total_story_points||0} pts · <strong style="color:var(--text)">${e.progress||0}%</strong></span></div>
+          ${bar(e.progress)}
+        </div>
+        ${e.contributing_teams?.length?`<div>${e.contributing_teams.map(t=>`<span class="tag ${t.is_owner?'tag-owner':''}">${t.is_owner?'★ ':''}${t.name} ${t.contribution_percentage}%</span>`).join('')}</div>`:''}
+      </div>`).join('')}</div>`;
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── DEPENDENCIES ──
+async function loadDeps(){
+  const el=document.getElementById('deps-list');
+  try{
+    const d=await api('/api/dashboard/dependencies');
+    el.innerHTML=d.dependencies?.length?d.dependencies.map(dep=>`<div class="dep-row"><div><strong style="font-size:13px">${dep.source_epic}</strong><div style="font-size:11px;color:var(--muted)">${dep.source_project}${dep.source_team?' · '+dep.source_team:''}</div></div><span style="color:var(--brand-light);font-size:18px">→</span><span class="dep-type">${dep.dependency_type}</span><span style="color:var(--brand-light);font-size:18px">→</span><div><strong style="font-size:13px">${dep.target_epic}</strong><div style="font-size:11px;color:var(--muted)">${dep.target_project}${dep.target_team?' · '+dep.target_team:''}</div></div><div style="margin-left:auto;display:flex;gap:5px">${badge(dep.source_status)} → ${badge(dep.target_status)}</div></div>`).join(''):empty('🔗','No dependencies','Link epics in Jira using "Blocks" or "Depends on", then re-sync');
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── TIMELINE ──
+async function loadTimeline(){
+  const el=document.getElementById('timeline-list');
+  try{
+    const d=await api('/api/dashboard/timeline');
+    el.innerHTML=d.timeline?.length?d.timeline.map(ev=>`<div style="display:flex;gap:16px;margin-bottom:18px"><div style="display:flex;flex-direction:column;align-items:center"><div style="width:11px;height:11px;border-radius:50%;margin-top:3px;flex-shrink:0;background:${ev.status==='completed'?'#4ade80':ev.status==='in-progress'?'var(--brand)':'#2d3a52'}"></div><div style="border-left:2px dashed rgba(255,255,255,.05);flex:1;margin-left:4px;margin-bottom:-6px"></div></div><div style="padding-bottom:14px"><div style="font-size:11px;color:var(--brand-light);font-weight:600;margin-bottom:2px">${ev.event_date?new Date(ev.event_date).toLocaleDateString('en-US',{month:'short',year:'numeric'}):'TBD'}</div><div style="font-size:14px;font-weight:500">${ev.title} ${badge(ev.status)}</div><div style="font-size:11px;color:var(--muted);margin-top:3px">${[ev.project_name,ev.team_name,ev.epic_name].filter(Boolean).join(' · ')}</div></div></div>`).join(''):empty('📅','No timeline events','Milestone issues will appear here after sync');
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── RISKS ──
+async function loadRisks(){
+  const el=document.getElementById('risks-list');
+  try{
+    const d=await api('/api/dashboard/risks');
+    el.innerHTML=d.risks?.length?d.risks.map(r=>`<div class="risk-row"><div style="font-size:20px">⚠️</div><div style="flex:1"><div style="font-size:14px;font-weight:500;margin-bottom:3px">${r.title}</div><div style="font-size:11px;color:var(--muted)">${r.project_name||'No project'}${r.jira_issue_key?' · '+r.jira_issue_key:''} · ${new Date(r.identified_date).toLocaleDateString()}</div>${r.description?`<div style="font-size:12px;color:#94a3b8;margin-top:5px">${r.description.substring(0,120)}${r.description.length>120?'…':''}</div>`:''}</div><span class="badge b-${r.severity==='high'||r.severity==='critical'?'bad':r.severity==='medium'?'warn':'info'}">${r.severity}</span></div>`).join(''):empty('✅','No open risks','Label Jira issues with risk-high or risk-medium to see them here');
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── BLOCKERS ──
+async function loadBlockers(){
+  const el=document.getElementById('blockers-list');
+  try{
+    const d=await api('/api/dashboard/blockers');
+    el.innerHTML=d.blockers?.length?d.blockers.map(b=>`<div class="block-row"><div style="font-size:20px">🚫</div><div style="flex:1"><div style="font-size:14px;font-weight:500;margin-bottom:3px">${b.title}</div><div style="font-size:11px;color:var(--muted)">${[b.team_name&&'👥 '+b.team_name,b.epic_name&&'🎯 '+b.epic_name,b.project_name&&'📁 '+b.project_name,b.jira_issue_key].filter(Boolean).join(' · ')} · Since ${new Date(b.blocked_since).toLocaleDateString()}</div></div><span class="badge b-bad">Active</span></div>`).join(''):empty('✅','No active blockers','Label Jira issues "blocked" or set status to Blocked in your workflow');
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── VELOCITY ──
+async function loadVelocity(){
+  try{
+    const d=await api('/api/dashboard/velocity-history');
+    if(!d.velocityHistory?.length){document.querySelector('#page-velocity .card').innerHTML='<div class="card-title">📈 Team Velocity Trends</div>'+empty('📈','No velocity data','Complete sprints and sync to see trends');return;}
+    const colors=['#5b6af0','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'];
+    const labels=[...new Set(d.velocityHistory.flatMap(t=>t.history.map(h=>h.sprint_name||'Sprint')))].slice(0,8);
+    if(vc)vc.destroy();
+    vc=new Chart(document.getElementById('vchart'),{type:'line',data:{labels,datasets:d.velocityHistory.map((t,i)=>({label:t.teamName,data:labels.map(l=>t.history.find(h=>h.sprint_name===l)?.velocity||null),borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+'18',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:colors[i%colors.length]}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:12}}}},scales:{x:{ticks:{color:'#4a5568'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#4a5568'},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}}}});
+  }catch(e){console.error(e);}
+}
+
+// ── PREDICTABILITY ──
+async function loadPred(){
+  const el=document.getElementById('pred-grid');
+  try{
+    const d=await api('/api/dashboard/predictability');
+    el.innerHTML=d.predictability?.length?d.predictability.map(t=>{const s=parseFloat(t.predictability_score||0);return`<div class="pred-card"><div class="pred-score ${s>=80?'s-hi':s>=60?'s-md':'s-lo'}">${s.toFixed(0)}%</div><div style="font-size:13px;font-weight:600;margin-top:6px">${t.name}</div><div style="font-size:11px;color:var(--muted);margin-top:3px">Velocity: ${t.velocity} · ${t.sprint_count} sprints</div></div>`}).join(''):empty('🎲','No data','Complete sprints and sync');
+  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+}
+
+// ── BOOT ──
+if(token){api('/api/auth/profile').then(()=>showApp()).catch(()=>{token=null;localStorage.removeItem('pv_token');});}
+</script>
+</body>
+</html>

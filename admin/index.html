@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Portavio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --brand: #5b6af0;
+            --brand-dark: #4452d4;
+            --brand-light: #7c89f5;
+            --bg: #0a0d1a;
+            --bg2: #0f1323;
+            --bg3: #1a1e35;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: rgba(255, 255, 255, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Layout */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--bg2);
+            border-right: 1px solid var(--border);
+            padding: 2rem 0;
+            overflow-y: auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 1.5rem 1.5rem;
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+        .logo svg { width: 28px; height: 28px; }
+        .logo span { color: var(--brand-light); }
+
+        .nav-section {
+            padding: 0.5rem 1.5rem;
+            font-size: 11px;
+            font-weight: 700;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 1rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.75rem 1.5rem;
+            color: var(--muted);
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .nav-item:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .nav-item.active {
+            color: var(--brand-light);
+            border-left-color: var(--brand);
+            background: rgba(91, 106, 240, 0.07);
+        }
+
+        .main {
+            margin-left: 260px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--brand), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        /* Stats Cards */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+
+        .stat-change {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .stat-change.positive { color: var(--success); }
+        .stat-change.negative { color: var(--danger); }
+
+        /* Table */
+        .card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .search-box {
+            padding: 0.6rem 1rem;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            width: 300px;
+            outline: none;
+            font-family: inherit;
+        }
+        .search-box:focus {
+            border-color: var(--brand);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-trial { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
+        .badge-active { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .badge-past-due { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .badge-canceled { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 12px;
+        }
+
+        .btn-primary {
+            background: var(--brand);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--brand-dark);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-ghost:hover {
+            border-color: var(--brand);
+            background: rgba(91, 106, 240, 0.05);
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.7rem;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--brand);
+        }
+
+        .detail-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-label {
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+        }
+
+        .empty {
+            text-align: center;
+            padding: 3rem;
+            color: var(--muted);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="logo">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="lg" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#5b6af0"/>
+                    <stop offset="1" stop-color="#8b5cf6"/>
+                </linearGradient>
+            </defs>
+            <path d="M24 3L42 13.5V34.5L24 45L6 34.5V13.5L24 3Z" fill="url(#lg)" opacity="0.9"/>
+            <path d="M24 12 L26 22 L24 20 L22 22 Z" fill="white" opacity="0.95"/>
+            <path d="M24 36 L22 26 L24 28 L26 26 Z" fill="white" opacity="0.5"/>
+            <path d="M12 24 L22 22 L20 24 L22 26 Z" fill="white" opacity="0.5"/>
+            <path d="M36 24 L26 26 L28 24 L26 22 Z" fill="white" opacity="0.5"/>
+            <circle cx="24" cy="24" r="2.5" fill="white"/>
+        </svg>
+        Port<span>avio</span> Admin
+    </div>
+
+    <div class="nav-section">Dashboard</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+        <span>📊</span> Overview
+    </div>
+
+    <div class="nav-section">Management</div>
+    <div class="nav-item" onclick="showPage('users')">
+        <span>👥</span> Users
+    </div>
+    <div class="nav-item" onclick="showPage('organizations')">
+        <span>🏢</span> Organizations
+    </div>
+    <div class="nav-item" onclick="showPage('subscriptions')">
+        <span>💳</span> Subscriptions
+    </div>
+
+    <div class="nav-section">System</div>
+    <div class="nav-item" onclick="showPage('settings')">
+        <span>⚙️</span> Settings
+    </div>
+    <div class="nav-item" onclick="logout()">
+        <span>🚪</span> Logout
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+    <!-- Header -->
+    <div class="header">
+        <h1 id="page-title">Dashboard Overview</h1>
+        <div class="user-menu">
+            <div class="user-avatar">A</div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="page-dashboard" class="page">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="stat-users">—</div>
+                <div class="stat-change positive">+12 this week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Subscriptions</div>
+                <div class="stat-value" id="stat-subs">—</div>
+                <div class="stat-change positive">+3 this month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">MRR</div>
+                <div class="stat-value" id="stat-mrr">$—</div>
+                <div class="stat-change positive">+18%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Trial Conversions</div>
+                <div class="stat-value" id="stat-conversion">—%</div>
+                <div class="stat-change negative">-2%</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Recent Signups</h2>
+            </div>
+            <div id="recent-signups" class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Organizations Page -->
+    <div id="page-organizations" class="page" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">All Organizations</h2>
+                <input type="text" class="search-box" placeholder="Search organizations..." id="org-search">
+            </div>
+            <div id="org-table-container"></div>
+        </div>
+    </div>
+
+    <!-- Users Page -->
+    <div id="page-users" class="page" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">All Users</h2>
+                <input type="text" class="search-box" placeholder="Search users..." id="user-search">
+            </div>
+            <div id="user-table-container"></div>
+        </div>
+    </div>
+
+    <!-- Subscriptions Page -->
+    <div id="page-subscriptions" class="page" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Subscription Management</h2>
+                <input type="text" class="search-box" placeholder="Search subscriptions..." id="sub-search">
+            </div>
+            <div id="sub-table-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- User Detail Modal -->
+<div id="user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>User Details</h2>
+        </div>
+        <div class="modal-body" id="user-detail"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('user-modal')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Organization Detail Modal -->
+<div id="org-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Organization Details</h2>
+        </div>
+        <div class="modal-body" id="org-detail"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('org-modal')">Close</button>
+            <button class="btn btn-primary" id="org-update-plan">Update Plan</button>
+        </div>
+    </div>
+</div>
+
+<!-- Subscription Action Modal -->
+<div id="subscription-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Manage Subscription</h2>
+        </div>
+        <div class="modal-body" id="subscription-detail"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal('subscription-modal')">Cancel</button>
+            <button class="btn btn-danger" id="sub-action-btn">Cancel Subscription</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'https://api.portavio.io';  // Change to your API URL
+let token = localStorage.getItem('admin_token');
+
+// Auth check
+if (!token) {
+    // Redirect to admin login (you'll need to create this)
+    // For now, use regular login
+    window.location.href = '/login.html';
+}
+
+async function api(path, method = 'GET', body = null) {
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+    };
+    const options = { method, headers };
+    if (body) options.body = JSON.stringify(body);
+    
+    const response = await fetch(`${API_BASE}${path}`, options);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Request failed');
+    return data;
+}
+
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    document.getElementById(`page-${page}`).style.display = 'block';
+    
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event?.currentTarget?.classList.add('active');
+    
+    const titles = {
+        dashboard: 'Dashboard Overview',
+        users: 'User Management',
+        organizations: 'Organizations',
+        subscriptions: 'Subscription Management',
+        settings: 'System Settings',
+    };
+    document.getElementById('page-title').textContent = titles[page];
+    
+    // Load data
+    if (page === 'dashboard') loadDashboard();
+    if (page === 'users') loadUsers();
+    if (page === 'organizations') loadOrganizations();
+    if (page === 'subscriptions') loadSubscriptions();
+}
+
+async function loadDashboard() {
+    try {
+        const stats = await api('/api/admin/stats');
+        document.getElementById('stat-users').textContent = stats.totalUsers || 0;
+        document.getElementById('stat-subs').textContent = stats.activeSubscriptions || 0;
+        document.getElementById('stat-mrr').textContent = `$${stats.mrr || 0}`;
+        document.getElementById('stat-conversion').textContent = stats.conversionRate || 0;
+
+        // Recent signups
+        const signups = await api('/api/admin/recent-signups?limit=10');
+        const html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Organization</th>
+                        <th>Plan</th>
+                        <th>Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${signups.map(s => `
+                        <tr>
+                            <td><strong>${s.user_name}</strong><br><small style="color: var(--muted)">${s.user_email}</small></td>
+                            <td>${s.org_name}</td>
+                            <td><span class="badge badge-${s.plan}">${s.plan}</span></td>
+                            <td>${new Date(s.created_at).toLocaleDateString()}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('recent-signups').innerHTML = html;
+    } catch (error) {
+        console.error('Dashboard load error:', error);
+    }
+}
+
+async function loadOrganizations() {
+    try {
+        const orgs = await api('/api/admin/organizations');
+        const html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Organization</th>
+                        <th>Plan</th>
+                        <th>Status</th>
+                        <th>Members</th>
+                        <th>MRR</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${orgs.map(org => `
+                        <tr>
+                            <td>
+                                <strong>${org.name}</strong><br>
+                                <small style="color: var(--muted)">${org.slug}</small>
+                            </td>
+                            <td><span class="badge badge-${org.plan}">${org.plan}</span></td>
+                            <td><span class="badge badge-${org.subscription_status}">${org.subscription_status}</span></td>
+                            <td>${org.member_count || 0}</td>
+                            <td>$${calculateMRR(org.plan)}</td>
+                            <td>${new Date(org.created_at).toLocaleDateString()}</td>
+                            <td>
+                                <div class="actions">
+                                    <button class="btn btn-sm btn-ghost" onclick="viewOrg(${org.id})">View</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('org-table-container').innerHTML = html;
+    } catch (error) {
+        console.error('Organizations load error:', error);
+        document.getElementById('org-table-container').innerHTML = '<div class="empty">Failed to load organizations</div>';
+    }
+}
+
+async function loadUsers() {
+    try {
+        const users = await api('/api/admin/users');
+        const html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Organization</th>
+                        <th>Role</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${users.map(user => `
+                        <tr>
+                            <td>
+                                <strong>${user.name}</strong><br>
+                                <small style="color: var(--muted)">${user.email}</small>
+                            </td>
+                            <td>${user.org_name || 'No org'}</td>
+                            <td><span class="badge badge-active">${user.role}</span></td>
+                            <td>${user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'}</td>
+                            <td>
+                                <div class="actions">
+                                    <button class="btn btn-sm btn-ghost" onclick="viewUser(${user.id})">View</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('user-table-container').innerHTML = html;
+    } catch (error) {
+        console.error('Users load error:', error);
+        document.getElementById('user-table-container').innerHTML = '<div class="empty">Failed to load users</div>';
+    }
+}
+
+async function loadSubscriptions() {
+    try {
+        const subs = await api('/api/admin/subscriptions');
+        const html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Organization</th>
+                        <th>Plan</th>
+                        <th>Status</th>
+                        <th>Stripe Customer</th>
+                        <th>Trial Ends</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${subs.map(sub => `
+                        <tr>
+                            <td><strong>${sub.org_name}</strong></td>
+                            <td><span class="badge badge-${sub.plan}">${sub.plan}</span></td>
+                            <td><span class="badge badge-${sub.subscription_status}">${sub.subscription_status}</span></td>
+                            <td><small style="font-family: monospace">${sub.stripe_customer_id || '—'}</small></td>
+                            <td>${sub.trial_ends_at ? new Date(sub.trial_ends_at).toLocaleDateString() : '—'}</td>
+                            <td>
+                                <div class="actions">
+                                    <button class="btn btn-sm btn-primary" onclick="enableSub(${sub.id})">Enable</button>
+                                    <button class="btn btn-sm btn-danger" onclick="disableSub(${sub.id})">Disable</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('sub-table-container').innerHTML = html;
+    } catch (error) {
+        console.error('Subscriptions load error:', error);
+        document.getElementById('sub-table-container').innerHTML = '<div class="empty">Failed to load subscriptions</div>';
+    }
+}
+
+async function enableSub(orgId) {
+    if (!confirm('Enable this subscription? This will reactivate the organization.')) return;
+    try {
+        await api(`/api/admin/organizations/${orgId}/subscription`, 'PATCH', {
+            subscription_status: 'active',
+        });
+        alert('Subscription enabled');
+        loadSubscriptions();
+    } catch (error) {
+        alert('Failed to enable subscription: ' + error.message);
+    }
+}
+
+async function disableSub(orgId) {
+    if (!confirm('Disable this subscription? This will prevent the organization from using the app.')) return;
+    try {
+        await api(`/api/admin/organizations/${orgId}/subscription`, 'PATCH', {
+            subscription_status: 'canceled',
+        });
+        alert('Subscription disabled');
+        loadSubscriptions();
+    } catch (error) {
+        alert('Failed to disable subscription: ' + error.message);
+    }
+}
+
+function calculateMRR(plan) {
+    const prices = { trial: 0, starter: 49, pro: 149, enterprise: 499 };
+    return prices[plan] || 0;
+}
+
+function openModal(id) {
+    document.getElementById(id).classList.add('show');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+async function viewUser(userId) {
+    try {
+        const user = await api(`/api/admin/users/${userId}`);
+        const html = `
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Name</span>
+                    <span class="detail-value">${user.name}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Email</span>
+                    <span class="detail-value">${user.email}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Created</span>
+                    <span class="detail-value">${new Date(user.created_at).toLocaleString()}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Last Login</span>
+                    <span class="detail-value">${user.last_login_at ? new Date(user.last_login_at).toLocaleString() : 'Never'}</span>
+                </div>
+            </div>
+        `;
+        document.getElementById('user-detail').innerHTML = html;
+        openModal('user-modal');
+    } catch (error) {
+        alert('Failed to load user details: ' + error.message);
+    }
+}
+
+async function viewOrg(orgId) {
+    try {
+        const org = await api(`/api/admin/organizations/${orgId}`);
+        const html = `
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Name</span>
+                    <span class="detail-value">${org.name}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Slug</span>
+                    <span class="detail-value">${org.slug}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Plan</span>
+                    <span class="detail-value"><span class="badge badge-${org.plan}">${org.plan}</span></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value"><span class="badge badge-${org.subscription_status}">${org.subscription_status}</span></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Members</span>
+                    <span class="detail-value">${org.member_count || 0}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Trial Ends</span>
+                    <span class="detail-value">${org.trial_ends_at ? new Date(org.trial_ends_at).toLocaleString() : '—'}</span>
+                </div>
+            </div>
+        `;
+        document.getElementById('org-detail').innerHTML = html;
+        openModal('org-modal');
+    } catch (error) {
+        alert('Failed to load organization details: ' + error.message);
+    }
+}
+
+function logout() {
+    localStorage.removeItem('admin_token');
+    window.location.href = '/login.html';
+}
+
+// Load dashboard on page load
+loadDashboard();
+</script>
+
+</body>
+</html>
