@@ -39,6 +39,12 @@ pool.on('error', (err) => console.error('Database error:', err));
 // MIDDLEWARE
 // ============================================================================
 app.use(helmet());
+console.log('================================');
+console.log('🔍 CORS Configuration:');
+console.log('  CORS_ORIGIN:', process.env.CORS_ORIGIN);
+console.log('  Expected:', 'https://portavio-islamkotb-2775s-projects.vercel.app');
+console.log('  Match:', process.env.CORS_ORIGIN === 'https://portavio-islamkotb-2775s-projects.vercel.app');
+console.log('================================');
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
