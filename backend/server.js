@@ -47,9 +47,9 @@ console.log('  Match:', process.env.CORS_ORIGIN === 'https://portavio-islamkotb-
 console.log('================================');
 
 //app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
-// Simple CORS configuration
+// Secure CORS configuration
 app.use(cors({
-  origin: true, // Allow all origins temporarily
+  origin: 'https://portavio-islamkotb-2775s-projects.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-Slug'],
