@@ -47,37 +47,13 @@ console.log('  Match:', process.env.CORS_ORIGIN === 'https://portavio-islamkotb-
 console.log('================================');
 
 //app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
-// CORS configuration - allow frontend domain
-const allowedOrigins = [
-  'https://portavio-islamkotb-2775s-projects.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:8000',
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('❌ CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+// Simple CORS configuration
+app.use(cors({
+  origin: true, // Allow all origins temporarily
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-Slug'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400,
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight OPTIONS requests
-app.options('*', cors(corsOptions));
-
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
