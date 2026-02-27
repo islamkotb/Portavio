@@ -45,7 +45,32 @@ console.log('  CORS_ORIGIN:', process.env.CORS_ORIGIN);
 console.log('  Expected:', 'https://portavio-islamkotb-2775s-projects.vercel.app');
 console.log('  Match:', process.env.CORS_ORIGIN === 'https://portavio-islamkotb-2775s-projects.vercel.app');
 console.log('================================');
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
+
+//app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
+// More flexible CORS configuration
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc)
+    if (!origin) return callback(null, true);
+    
+    // List of allowed origins
+    const allowedOrigins = [
+      'https://portavio-islamkotb-2775s-projects.vercel.app',
+      'https://portavio.vercel.app',
+      'http://localhost:3000',
+      process.env.CORS_ORIGIN
+    ].filter(Boolean);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(null, true); // Temporarily allow anyway for debugging
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
