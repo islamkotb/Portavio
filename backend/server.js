@@ -52,6 +52,7 @@ const allowedOrigins = [
   'https://portavio-islamkotb-2775s-projects.vercel.app',
   'https://portavio.vercel.app',
   'https://api.portavio.io',
+  'https://portavio-production.up.railway.app',
   'http://localhost:3000',
 ];
 
