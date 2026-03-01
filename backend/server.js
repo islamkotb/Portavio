@@ -1086,16 +1086,7 @@ app.get('/', (req, res) => res.json({
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 app.use((err, req, res, next) => res.status(500).json({ error: err.message || 'Server error' }));
-
 // ============================================================================
-// START
-// ============================================================================
-const startServer = async () => {
-  try {
-    await pool.query('SELECT NOW()');
-    console.log('✅ Database connected');
-	// ============================================================================
-	// ============================================================================
 	// ADMIN ROUTES
 	// ============================================================================
 
@@ -1208,6 +1199,16 @@ const startServer = async () => {
 		res.status(500).json({ error: 'Failed to fetch signups' });
 	  }
 	});
+
+// ============================================================================
+// START
+// ============================================================================
+const startServer = async () => {
+  try {
+    await pool.query('SELECT NOW()');
+    console.log('✅ Database connected');
+	// ============================================================================
+	
     app.listen(PORT, () => {
       console.log(`\n🚀 Jira Portfolio Dashboard API v2\n   http://localhost:${PORT}\n`);
     });
