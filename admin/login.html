@@ -266,7 +266,7 @@
 </div>
 
 <script>
-    const API_BASE = 'https://portavio-production.up.railway.app/';  // Change to your API URL
+    const API_BASE = 'https://portavio-production.up.railway.app';  // Change to your API URL
 
     function switchTab(tab) {
         document.querySelectorAll('.tab').forEach((btn, i) => {
@@ -312,7 +312,7 @@
             if (data.organizations && data.organizations.length > 0) {
                 localStorage.setItem('pv_current_org', data.organizations[0].slug);
             }
-            window.location.href = '/app';  // Redirect to app
+            window.location.href = '/';  // Redirect to admin dashboard
         } catch (error) {
             showError('login', error.message);
         }
