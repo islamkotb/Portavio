@@ -285,15 +285,21 @@
     }
 
     async function api(path, method, body) {
-        const response = await fetch(`${API_BASE}${path}`, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Request failed');
-        return data;
-    }
+		const headers = { 'Content-Type': 'application/json' };
+		const token = localStorage.getItem('pv_token');
+		if (token) {
+			headers['Authorization'] = `Bearer ${token}`;
+		}
+		
+		const response = await fetch(`${API_BASE}${path}`, {
+			method,
+			headers,
+			body: JSON.stringify(body),
+		});
+		const data = await response.json();
+		if (!response.ok) throw new Error(data.error || 'Request failed');
+		return data;
+	}
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -312,7 +318,10 @@
             if (data.organizations && data.organizations.length > 0) {
                 localStorage.setItem('pv_current_org', data.organizations[0].slug);
             }
-            window.location.href = '/';  // Redirect to admin dashboard
+            // Save token and redirect
+			localStorage.setItem('pv_token', data.token);
+			localStorage.setItem('pv_user', data.user.name);
+			window.location.href = '/index.html';  // Explicit redirect to dashboard
         } catch (error) {
             showError('login', error.message);
         }
@@ -341,7 +350,10 @@
             if (data.organization) {
                 localStorage.setItem('pv_current_org', data.organization.slug);
             }
-            window.location.href = '/app';  // Redirect to app
+            // Save token and redirect
+			localStorage.setItem('pv_token', data.token);
+			localStorage.setItem('pv_user', data.user.name);
+			window.location.href = '/index.html';  // Explicit redirect to dashboard
         } catch (error) {
             showError('register', error.message);
         }
