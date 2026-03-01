@@ -431,28 +431,20 @@
     </div>
 
     <div class="nav-section">Dashboard</div>
-    <div class="nav-item active" onclick="showPage('dashboard')">
-        <span>📊</span> Overview
-    </div>
+    <div class="nav-item active" id="nav-dashboard">
+	  <span>📊</span> Overview
+	</div>
 
-    <div class="nav-section">Management</div>
-    <div class="nav-item" onclick="showPage('users')">
-        <span>👥</span> Users
-    </div>
-    <div class="nav-item" onclick="showPage('organizations')">
-        <span>🏢</span> Organizations
-    </div>
-    <div class="nav-item" onclick="showPage('subscriptions')">
-        <span>💳</span> Subscriptions
-    </div>
-
-    <div class="nav-section">System</div>
-    <div class="nav-item" onclick="showPage('settings')">
-        <span>⚙️</span> Settings
-    </div>
-    <div class="nav-item" onclick="logout()">
-        <span>🚪</span> Logout
-    </div>
+	<div class="nav-section">Management</div>
+	<div class="nav-item" id="nav-users">
+	  <span>👥</span> Users
+	</div>
+	<div class="nav-item" id="nav-organizations">
+	  <span>🏢</span> Organizations
+	</div>
+	<div class="nav-item" id="nav-subscriptions">
+	  <span>💳</span> Subscriptions
+	</div>
 </div>
 
 <!-- Main Content -->
@@ -937,6 +929,52 @@ function logout() {
 
 // Load dashboard on page load
 loadDashboard();
+// Navigation - This runs immediately
+(function() {
+  const nav = {
+    dashboard: document.getElementById('nav-dashboard'),
+    users: document.getElementById('nav-users'),
+    organizations: document.getElementById('nav-organizations'),
+    subscriptions: document.getElementById('nav-subscriptions'),
+  };
+  
+  function switchPage(page) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    
+    // Show selected page
+    const pageEl = document.getElementById(`page-${page}`);
+    if (pageEl) pageEl.style.display = 'block';
+    
+    // Update nav active state
+    Object.values(nav).forEach(item => item?.classList.remove('active'));
+    if (nav[page]) nav[page].classList.add('active');
+    
+    // Update title
+    const titles = {
+      dashboard: 'Dashboard Overview',
+      users: 'User Management',
+      organizations: 'Organizations',
+      subscriptions: 'Subscription Management',
+    };
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) titleEl.textContent = titles[page];
+    
+    // Load data
+    if (page === 'dashboard' && typeof loadDashboard === 'function') loadDashboard();
+    if (page === 'users' && typeof loadUsers === 'function') loadUsers();
+    if (page === 'organizations' && typeof loadOrganizations === 'function') loadOrganizations();
+    if (page === 'subscriptions' && typeof loadSubscriptions === 'function') loadSubscriptions();
+  }
+  
+  // Attach click handlers
+  if (nav.dashboard) nav.dashboard.onclick = () => switchPage('dashboard');
+  if (nav.users) nav.users.onclick = () => switchPage('users');
+  if (nav.organizations) nav.organizations.onclick = () => switchPage('organizations');
+  if (nav.subscriptions) nav.subscriptions.onclick = () => switchPage('subscriptions');
+  
+  console.log('✅ Navigation ready');
+})();
 </script>
 
 </body>
