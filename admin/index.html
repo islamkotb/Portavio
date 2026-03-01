@@ -607,26 +607,34 @@ async function api(path, method = 'GET', body = null) {
 }
 
 function showPage(page) {
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    document.getElementById(`page-${page}`).style.display = 'block';
-    
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    event?.currentTarget?.classList.add('active');
-    
-    const titles = {
-        dashboard: 'Dashboard Overview',
-        users: 'User Management',
-        organizations: 'Organizations',
-        subscriptions: 'Subscription Management',
-        settings: 'System Settings',
-    };
-    document.getElementById('page-title').textContent = titles[page];
-    
-    // Load data
-    if (page === 'dashboard') loadDashboard();
-    if (page === 'users') loadUsers();
-    if (page === 'organizations') loadOrganizations();
-    if (page === 'subscriptions') loadSubscriptions();
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  
+  // Show selected page
+  const pageElement = document.getElementById(`page-${page}`);
+  if (pageElement) {
+    pageElement.style.display = 'block';
+  }
+  
+  // Update active nav item
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event?.currentTarget?.classList.add('active');
+  
+  // Update page title
+  const titles = {
+    dashboard: 'Dashboard Overview',
+    users: 'User Management',
+    organizations: 'Organizations',
+    subscriptions: 'Subscription Management',
+    settings: 'System Settings',
+  };
+  document.getElementById('page-title').textContent = titles[page] || 'Dashboard';
+  
+  // Load data for the page
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'users') loadUsers();
+  if (page === 'organizations') loadOrganizations();
+  if (page === 'subscriptions') loadSubscriptions();
 }
 
 async function loadDashboard() {
