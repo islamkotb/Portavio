@@ -585,17 +585,23 @@ if (!token) {
 }
 
 async function api(path, method = 'GET', body = null) {
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-    };
-    const options = { method, headers };
-    if (body) options.body = JSON.stringify(body);
-    
-    const response = await fetch(`${API_BASE}${path}`, options);
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Request failed');
-    return data;
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  const token = localStorage.getItem('pv_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const options = { method, headers };
+  if (body) options.body = JSON.stringify(body);
+  
+  const response = await fetch(`${API_BASE}${path}`, options);
+  const data = await response.json();
+  
+  if (!response.ok) throw new Error(data.error || 'Request failed');
+  return data;
 }
 
 function showPage(page) {
