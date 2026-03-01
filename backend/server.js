@@ -1084,8 +1084,7 @@ app.get('/', (req, res) => res.json({
   },
 }));
 
-app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
-app.use((err, req, res, next) => res.status(500).json({ error: err.message || 'Server error' }));
+
 // ============================================================================
 // ADMIN ROUTES
 // ============================================================================
@@ -1198,6 +1197,8 @@ app.get('/api/admin/recent-signups', authenticateToken, requireAdmin, async (req
 	res.status(500).json({ error: 'Failed to fetch signups' });
   }
 });
+app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
+app.use((err, req, res, next) => res.status(500).json({ error: err.message || 'Server error' }));
 
 // ============================================================================
 // START
