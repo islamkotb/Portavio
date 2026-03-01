@@ -577,12 +577,14 @@
 const API_BASE = 'https://api.portavio.io';  // Change to your API URL
 let token = localStorage.getItem('admin_token');
 
-// Auth check
-if (!token) {
-    // Redirect to admin login (you'll need to create this)
-    // For now, use regular login
-    window.location.href = '/login.html';
+// Check authentication on load
+const token = localStorage.getItem('pv_token');
+if (!token || token === 'null' || token === 'undefined') {
+  console.log('No valid token, redirecting to login');
+  window.location.href = '/login.html';
+  return;
 }
+console.log('✅ Token found, loading dashboard');
 
 async function api(path, method = 'GET', body = null) {
   const headers = {
