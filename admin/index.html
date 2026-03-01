@@ -445,6 +445,13 @@
 	<div class="nav-item" id="nav-subscriptions">
 	  <span>💳</span> Subscriptions
 	</div>
+	<div class="nav-section">System</div>
+    <div class="nav-item" id="nav-settings">
+      <span>⚙️</span> Settings
+    </div>
+    <div class="nav-item" id="nav-logout">
+      <span>🚪</span> Logout
+    </div>
 </div>
 
 <!-- Main Content -->
@@ -522,6 +529,18 @@
             <div id="sub-table-container"></div>
         </div>
     </div>
+	<!-- Settings Page -->
+	<div id="page-settings" class="page" style="display: none;">
+		<div class="card">
+			<div class="card-header">
+				<h2 class="card-title">System Settings</h2>
+			</div>
+			<div style="padding: 2rem;">
+				<h3 style="margin-bottom: 1rem;">Account Settings</h3>
+				<p style="color: var(--muted);">Settings page coming soon...</p>
+			</div>
+		</div>
+	</div>
 </div>
 
 <!-- User Detail Modal -->
@@ -938,6 +957,8 @@ loadDashboard();
     users: document.getElementById('nav-users'),
     organizations: document.getElementById('nav-organizations'),
     subscriptions: document.getElementById('nav-subscriptions'),
+	settings: document.getElementById('nav-settings'),
+    logout: document.getElementById('nav-logout'),
   };
   
   function switchPage(page) {
@@ -958,6 +979,7 @@ loadDashboard();
       users: 'User Management',
       organizations: 'Organizations',
       subscriptions: 'Subscription Management',
+	  settings: 'System Settings',
     };
     const titleEl = document.getElementById('page-title');
     if (titleEl) titleEl.textContent = titles[page];
@@ -969,11 +991,18 @@ loadDashboard();
     if (page === 'subscriptions' && typeof loadSubscriptions === 'function') loadSubscriptions();
   }
   
+  function logout() {
+    localStorage.clear();
+    window.location.href = '/login.html';
+  }
+  
   // Attach click handlers
   if (nav.dashboard) nav.dashboard.onclick = () => switchPage('dashboard');
   if (nav.users) nav.users.onclick = () => switchPage('users');
   if (nav.organizations) nav.organizations.onclick = () => switchPage('organizations');
   if (nav.subscriptions) nav.subscriptions.onclick = () => switchPage('subscriptions');
+  if (nav.settings) nav.settings.onclick = () => switchPage('settings');
+  if (nav.logout) nav.logout.onclick = logout;
   
   console.log('✅ Navigation ready');
 })();
