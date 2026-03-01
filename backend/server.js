@@ -1110,7 +1110,7 @@ const startServer = async () => {
 		res.status(500).json({ error: 'Authorization check failed' });
 	  }
 	};
-
+	console.log('✅ Admin routes loaded');
 	app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
 	  try {
 		const stats = await pool.query(`
