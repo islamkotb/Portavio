@@ -1087,118 +1087,117 @@ app.get('/', (req, res) => res.json({
 app.use((req, res) => res.status(404).json({ error: 'Route not found' }));
 app.use((err, req, res, next) => res.status(500).json({ error: err.message || 'Server error' }));
 // ============================================================================
-	// ADMIN ROUTES
-	// ============================================================================
+// ADMIN ROUTES
+// ============================================================================
 
-	const requireAdmin = async (req, res, next) => {
-	  try {
-		const user = await pool.query('SELECT role FROM users WHERE id = $1', [req.user.userId]);
-		if (!user.rows.length || user.rows[0].role !== 'admin') {
-		  return res.status(403).json({ error: 'Admin access required' });
-		}
-		next();
-	  } catch (error) {
-		res.status(500).json({ error: 'Authorization check failed' });
-	  }
-	};
-	console.log('✅ Admin routes loaded');
-	app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
-	  try {
-		const stats = await pool.query(`
-		  SELECT
-			(SELECT COUNT(*) FROM users) as total_users,
-			(SELECT COUNT(*) FROM organizations WHERE subscription_status IN ('active', 'trialing')) as active_subscriptions,
-			(SELECT SUM(CASE WHEN plan = 'starter' THEN 49 WHEN plan = 'pro' THEN 149 WHEN plan = 'enterprise' THEN 499 ELSE 0 END) FROM organizations WHERE subscription_status = 'active') as mrr
-		`);
-		res.json({
-		  totalUsers: parseInt(stats.rows[0].total_users),
-		  activeSubscriptions: parseInt(stats.rows[0].active_subscriptions),
-		  mrr: parseInt(stats.rows[0].mrr || 0),
-		  conversionRate: 0,
-		});
-	  } catch (error) {
-		console.error('Admin stats error:', error);
-		res.status(500).json({ error: 'Failed to fetch stats' });
-	  }
+const requireAdmin = async (req, res, next) => {
+  try {
+	const user = await pool.query('SELECT role FROM users WHERE id = $1', [req.user.userId]);
+	if (!user.rows.length || user.rows[0].role !== 'admin') {
+	  return res.status(403).json({ error: 'Admin access required' });
+	}
+	next();
+  } catch (error) {
+	res.status(500).json({ error: 'Authorization check failed' });
+  }
+};
+console.log('✅ Admin routes loaded');
+app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+	const stats = await pool.query(`
+	  SELECT
+		(SELECT COUNT(*) FROM users) as total_users,
+		(SELECT COUNT(*) FROM organizations WHERE subscription_status IN ('active', 'trialing')) as active_subscriptions,
+		(SELECT SUM(CASE WHEN plan = 'starter' THEN 49 WHEN plan = 'pro' THEN 149 WHEN plan = 'enterprise' THEN 499 ELSE 0 END) FROM organizations WHERE subscription_status = 'active') as mrr
+	`);
+	res.json({
+	  totalUsers: parseInt(stats.rows[0].total_users),
+	  activeSubscriptions: parseInt(stats.rows[0].active_subscriptions),
+	  mrr: parseInt(stats.rows[0].mrr || 0),
+	  conversionRate: 0,
 	});
+  } catch (error) {
+	console.error('Admin stats error:', error);
+	res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
 
-	app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
-	  try {
-		const users = await pool.query(`
-		  SELECT u.id, u.name, u.email, u.role, u.created_at,
-				 o.name as org_name
-		  FROM users u
-		  LEFT JOIN organization_members om ON om.user_id = u.id
-		  LEFT JOIN organizations o ON o.id = om.organization_id
-		  ORDER BY u.created_at DESC
-		`);
-		res.json(users.rows);
-	  } catch (error) {
-		res.status(500).json({ error: 'Failed to fetch users' });
-	  }
-	});
+app.get('/api/admin/users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+	const users = await pool.query(`
+	  SELECT u.id, u.name, u.email, u.role, u.created_at,
+			 o.name as org_name
+	  FROM users u
+	  LEFT JOIN organization_members om ON om.user_id = u.id
+	  LEFT JOIN organizations o ON o.id = om.organization_id
+	  ORDER BY u.created_at DESC
+	`);
+	res.json(users.rows);
+  } catch (error) {
+	res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
 
-	app.get('/api/admin/organizations', authenticateToken, requireAdmin, async (req, res) => {
-	  try {
-		const orgs = await pool.query(`
-		  SELECT o.*, COUNT(DISTINCT om.user_id) as member_count
-		  FROM organizations o
-		  LEFT JOIN organization_members om ON om.organization_id = o.id
-		  GROUP BY o.id
-		  ORDER BY o.created_at DESC
-		`);
-		res.json(orgs.rows);
-	  } catch (error) {
-		res.status(500).json({ error: 'Failed to fetch organizations' });
-	  }
-	});
+app.get('/api/admin/organizations', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+	const orgs = await pool.query(`
+	  SELECT o.*, COUNT(DISTINCT om.user_id) as member_count
+	  FROM organizations o
+	  LEFT JOIN organization_members om ON om.organization_id = o.id
+	  GROUP BY o.id
+	  ORDER BY o.created_at DESC
+	`);
+	res.json(orgs.rows);
+  } catch (error) {
+	res.status(500).json({ error: 'Failed to fetch organizations' });
+  }
+});
+app.get('/api/admin/subscriptions', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+	const subs = await pool.query(`
+	  SELECT o.id, o.name as org_name, o.plan, o.subscription_status,
+			 o.stripe_customer_id, o.trial_ends_at, o.created_at
+	  FROM organizations o
+	  ORDER BY o.created_at DESC
+	`);
+	res.json(subs.rows);
+  } catch (error) {
+	res.status(500).json({ error: 'Failed to fetch subscriptions' });
+  }
+});
 
-	app.get('/api/admin/subscriptions', authenticateToken, requireAdmin, async (req, res) => {
-	  try {
-		const subs = await pool.query(`
-		  SELECT o.id, o.name as org_name, o.plan, o.subscription_status,
-				 o.stripe_customer_id, o.trial_ends_at, o.created_at
-		  FROM organizations o
-		  ORDER BY o.created_at DESC
-		`);
-		res.json(subs.rows);
-	  } catch (error) {
-		res.status(500).json({ error: 'Failed to fetch subscriptions' });
-	  }
-	});
+app.patch('/api/admin/organizations/:id/subscription', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { subscription_status } = req.body;
+  try {
+	const result = await pool.query(`
+	  UPDATE organizations 
+	  SET subscription_status = $1, updated_at = NOW()
+	  WHERE id = $2 
+	  RETURNING *
+	`, [subscription_status, id]);
+	res.json(result.rows[0]);
+  } catch (error) {
+	res.status(500).json({ error: 'Failed to update subscription' });
+  }
+});
 
-	app.patch('/api/admin/organizations/:id/subscription', authenticateToken, requireAdmin, async (req, res) => {
-	  const { id } = req.params;
-	  const { subscription_status } = req.body;
-	  try {
-		const result = await pool.query(`
-		  UPDATE organizations 
-		  SET subscription_status = $1, updated_at = NOW()
-		  WHERE id = $2 
-		  RETURNING *
-		`, [subscription_status, id]);
-		res.json(result.rows[0]);
-	  } catch (error) {
-		res.status(500).json({ error: 'Failed to update subscription' });
-	  }
-	});
-
-	app.get('/api/admin/recent-signups', authenticateToken, requireAdmin, async (req, res) => {
-	  try {
-		const signups = await pool.query(`
-		  SELECT u.id, u.name as user_name, u.email as user_email,
-				 o.name as org_name, o.plan, u.created_at
-		  FROM users u
-		  JOIN organization_members om ON om.user_id = u.id
-		  JOIN organizations o ON o.id = om.organization_id
-		  ORDER BY u.created_at DESC
-		  LIMIT 10
-		`);
-		res.json(signups.rows);
-	  } catch (error) {
-		res.status(500).json({ error: 'Failed to fetch signups' });
-	  }
-	});
+app.get('/api/admin/recent-signups', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+	const signups = await pool.query(`
+	  SELECT u.id, u.name as user_name, u.email as user_email,
+			 o.name as org_name, o.plan, u.created_at
+	  FROM users u
+	  JOIN organization_members om ON om.user_id = u.id
+	  JOIN organizations o ON o.id = om.organization_id
+	  ORDER BY u.created_at DESC
+	  LIMIT 10
+	`);
+	res.json(signups.rows);
+  } catch (error) {
+	res.status(500).json({ error: 'Failed to fetch signups' });
+  }
+});
 
 // ============================================================================
 // START
