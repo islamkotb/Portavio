@@ -526,14 +526,19 @@ async function syncJiraData(connection) {
     const load = velocity > 0 ? Math.min(Math.round((loadPts / velocity) * 100), 200) : 0;
 
     // Predictability = % of sprints where completed >= 80% of committed (last 6 sprints)
-    const predResult = await pool.query(`
-      SELECT
-        COUNT(*) AS total,
-        COUNT(*) FILTER (WHERE completed_points >= committed_points * 0.8) AS on_target
-      FROM velocity_history
-      WHERE team_id = $1
-      ORDER BY sprint_start_date DESC LIMIT 6
-    `, [teamId]);
+	const predResult = await pool.query(`
+	  SELECT
+		COUNT(*) AS total,
+		COUNT(*) FILTER (WHERE completed_points >= committed_points * 0.8) AS on_target
+	  FROM (
+		SELECT completed_points, committed_points
+		FROM velocity_history
+		WHERE team_id = $1
+		ORDER BY sprint_start_date DESC 
+		LIMIT 6
+	  ) sub
+	`, [teamId]);
+	
     const { total, on_target } = predResult.rows[0];
     const predictability = total > 0 ? Math.round((on_target / total) * 100) : 0;
 
