@@ -543,20 +543,26 @@ async function syncJiraData(connection) {
     );
 
     // Upsert velocity_history for active sprint
-    const activeSprint = await pool.query(
-      'SELECT id, start_date, end_date FROM sprints WHERE team_id=$1 AND state=$2 LIMIT 1',
-      [teamId, 'active']
-    );
-    if (activeSprint.rows.length) {
-      const sp = activeSprint.rows[0];
-      await pool.query(
-        `INSERT INTO velocity_history (team_id, sprint_id, committed_points, completed_points, velocity, sprint_start_date, sprint_end_date)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)
-         ON CONFLICT (team_id, sprint_id) DO UPDATE
-         SET committed_points=$3, completed_points=$4, velocity=$5`,
-        [teamId, sp.id, loadPts, 0, velocity, sp.start_date, sp.end_date]
-      );
-    }
+	const activeSprint = await pool.query(
+	  'SELECT id, start_date, end_date FROM sprints WHERE team_id=$1 AND state=$2 LIMIT 1',
+	  [teamId, 'active']
+	);
+	if (activeSprint.rows.length) {
+	  const sp = activeSprint.rows[0];
+	  
+	  // First, delete any existing entry to avoid GROUP BY issues
+	  await pool.query(
+		'DELETE FROM velocity_history WHERE team_id=$1 AND sprint_id=$2',
+		[teamId, sp.id]
+	  );
+	  
+	  // Then insert fresh data
+	  await pool.query(
+		`INSERT INTO velocity_history (team_id, sprint_id, committed_points, completed_points, velocity, sprint_start_date, sprint_end_date)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		[teamId, sp.id, loadPts, 0, velocity, sp.start_date, sp.end_date]
+	  );
+	}
   }
 
   // ------------------------------------------------------------------
