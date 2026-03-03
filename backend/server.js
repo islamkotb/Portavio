@@ -900,7 +900,7 @@ app.get('/api/dashboard/epics', authenticateToken, async (req, res) => {
 
     res.json({ epics: enriched });
   } catch (e) { 
-  console.error('❌ Projects endpoint error:', e);
+  console.error('❌ Epics endpoint error:', e);
   res.status(500).json({ error: 'Server error', details: e.message });
   }
 });
