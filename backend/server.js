@@ -836,7 +836,10 @@ app.get('/api/dashboard/teams', authenticateToken, async (req, res) => {
     }));
 
     res.json({ teams: enriched });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  } catch (e) { 
+	console.error('❌ Teams endpoint error:', e);
+	res.status(500).json({ error: 'Server error', details: e.message }); 
+	}
 });
 
 // -- Projects with their teams and epics (uses junction tables)
@@ -870,7 +873,10 @@ app.get('/api/dashboard/projects', authenticateToken, async (req, res) => {
     }));
 
     res.json({ projects: enriched });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  } catch (e) { 
+	console.error('❌ Projects endpoint error:', e);
+	res.status(500).json({ error: 'Server error', details: e.message }); 
+	}
 });
 
 // -- Epics with team ownership and contributors
@@ -893,7 +899,10 @@ app.get('/api/dashboard/epics', authenticateToken, async (req, res) => {
     }));
 
     res.json({ epics: enriched });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+  } catch (e) { 
+  console.error('❌ Projects endpoint error:', e);
+  res.status(500).json({ error: 'Server error', details: e.message });
+  }
 });
 
 // -- Manual override: assign a team to a project
