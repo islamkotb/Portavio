@@ -343,12 +343,55 @@
             font-weight: 900;
             letter-spacing: -1px;
             margin-bottom: 1.5rem;
+			color: var(--text);
         }
         .cta p {
             font-size: 18px;
             color: var(--muted);
             margin-bottom: 2.5rem;
         }
+		/* CTA Buttons - Specific styles */
+		.cta-button,
+		.cta-button-secondary {
+			padding: 16px 32px;
+			border-radius: 8px;
+			font-size: 16px;
+			font-weight: 600;
+			text-decoration: none;
+			transition: all 0.3s ease;
+			display: inline-block;
+			margin: 0 8px;
+		}
+
+		.cta-button {
+			background: linear-gradient(135deg, #5b6af0, #8b5cf6);
+			color: white !important;
+			box-shadow: 0 4px 14px rgba(91, 106, 240, 0.4);
+		}
+
+		.cta-button:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 20px rgba(91, 106, 240, 0.5);
+		}
+
+		.cta-button-secondary {
+			background: transparent;
+			color: var(--text) !important;
+			border: 2px solid rgba(255, 255, 255, 0.2);
+		}
+
+		.cta-button-secondary:hover {
+			border-color: rgba(255, 255, 255, 0.4);
+			background: rgba(255, 255, 255, 0.05);
+		}
+
+		/* Make sure hero-cta inside CTA section works */
+		.cta .hero-cta {
+			display: flex;
+			gap: 1rem;
+			justify-content: center;
+			flex-wrap: wrap;
+		}
 
         /* Footer */
         footer {
