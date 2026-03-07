@@ -312,7 +312,7 @@
             if (data.organizations && data.organizations.length > 0) {
                 localStorage.setItem('pv_current_org', data.organizations[0].slug);
             }
-            window.location.href = '/app';  // Redirect to app
+            window.location.href = 'https://portavio-islamkotb-2775s-projects.vercel.app';  // Redirect to app
         } catch (error) {
             showError('login', error.message);
         }
@@ -341,7 +341,7 @@
             if (data.organization) {
                 localStorage.setItem('pv_current_org', data.organization.slug);
             }
-            window.location.href = '/app';  // Redirect to app
+            window.location.href = 'https://portavio-islamkotb-2775s-projects.vercel.app';  // Redirect to app
         } catch (error) {
             showError('register', error.message);
         }
