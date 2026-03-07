@@ -944,8 +944,8 @@ async function viewOrg(orgId) {
 }
 
 function logout() {
-    localStorage.removeItem('admin_token');
-    window.location.href = '/login.html';
+    localStorage.clear();
+    window.location.href = 'https://portavio-in8f.vercel.app';
 }
 
 // Load dashboard on page load
