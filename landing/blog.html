@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coming Soon - Portavio</title>
+    <style>
+        :root {
+            --brand: #5b6af0;
+            --brand-dark: #4452d4;
+            --brand-light: #7c89f5;
+            --accent: #8b5cf6;
+            --bg: #0a0d1a;
+            --bg2: #0f1323;
+            --text: #e2e8f0;
+            --muted: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0d1a 0%, #16213e 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(10, 13, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.5rem 2rem;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .logo span {
+            background: linear-gradient(135deg, var(--brand-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-link {
+            color: var(--brand-light);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+        }
+
+        .content {
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .icon {
+            font-size: 5rem;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--brand-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 1.25rem;
+            color: var(--muted);
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .notify-form {
+            display: flex;
+            gap: 1rem;
+            max-width: 400px;
+            margin: 0 auto 2rem;
+        }
+
+        .notify-input {
+            flex: 1;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .notify-input::placeholder {
+            color: var(--muted);
+        }
+
+        .notify-button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--brand), var(--accent));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .notify-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .back-home {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            color: var(--brand-light);
+            border: 2px solid var(--brand-light);
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .back-home:hover {
+            background: rgba(91, 106, 240, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .footer {
+            background: var(--bg2);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a href="/" class="logo">
+                Port<span>avio</span>
+            </a>
+            <a href="/" class="back-link">← Back to Home</a>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="content">
+            <div class="icon" id="page-icon">🚀</div>
+            <h1 id="page-title">Coming Soon</h1>
+            <p id="page-description">
+                We're working hard to bring you this feature. Check back soon!
+            </p>
+            
+            <!-- 
+            <form class="notify-form" onsubmit="notifyMe(event)">
+                <input 
+                    type="email" 
+                    class="notify-input" 
+                    placeholder="your@email.com" 
+                    required
+                >
+                <button type="submit" class="notify-button">Notify Me</button>
+            </form>
+            -->
+            
+            <a href="/" class="back-home">Back to Home</a>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 Portavio. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Page-specific content based on URL or customize here
+        const pageContent = {
+            'documentation': {
+                icon: '📚',
+                title: 'Documentation',
+                description: 'Comprehensive guides and API references are on the way. In the meantime, check out our quick start guide in the app.'
+            },
+            'guides': {
+                icon: '📖',
+                title: 'Guides',
+                description: 'Step-by-step tutorials and best practices coming soon. Our team is crafting helpful content for you.'
+            },
+            'api': {
+                icon: '🔌',
+                title: 'API Reference',
+                description: 'Complete API documentation with examples is in development. Stay tuned for powerful integration options.'
+            },
+            'support': {
+                icon: '💬',
+                title: 'Support Center',
+                description: 'Our dedicated support portal is coming soon. For now, reach us at support@portavio.io'
+            },
+            'about': {
+                icon: '👥',
+                title: 'About Us',
+                description: 'Learn more about the team behind Portavio. Our story is being written as we build.'
+            },
+            'blog': {
+                icon: '✍️',
+                title: 'Blog',
+                description: 'Insights on portfolio management and engineering best practices. First posts coming soon!'
+            },
+            'careers': {
+                icon: '🎯',
+                title: 'Careers',
+                description: 'Interested in joining our team? We\'re growing fast. Check back soon for open positions.'
+            },
+            'contact': {
+                icon: '📧',
+                title: 'Contact',
+                description: 'Get in touch with us at hello@portavio.io or through your account dashboard.'
+            }
+        };
+
+        // Detect page from filename or customize
+        const path = window.location.pathname;
+        const pageName = path.split('/').pop().replace('.html', '');
+        
+        if (pageContent[pageName]) {
+            document.getElementById('page-icon').textContent = pageContent[pageName].icon;
+            document.getElementById('page-title').textContent = pageContent[pageName].title;
+            document.getElementById('page-description').textContent = pageContent[pageName].description;
+        }
+
+        function notifyMe(e) {
+            e.preventDefault();
+            alert('Thanks! We\'ll notify you when this feature launches.');
+            e.target.reset();
+        }
+    </script>
+</body>
+</html>

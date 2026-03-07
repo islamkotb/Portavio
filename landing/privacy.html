@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Portavio</title>
+    <style>
+        :root {
+            --brand: #5b6af0;
+            --brand-dark: #4452d4;
+            --brand-light: #7c89f5;
+            --accent: #8b5cf6;
+            --bg: #0a0d1a;
+            --bg2: #0f1323;
+            --text: #e2e8f0;
+            --muted: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(10, 13, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .logo span {
+            background: linear-gradient(135deg, var(--brand-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-link {
+            color: var(--brand-light);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        /* Content */
+        .content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 80px 2rem 120px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--brand-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .last-updated {
+            color: var(--muted);
+            margin-bottom: 3rem;
+            font-size: 0.95rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        ul {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+            color: var(--muted);
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        a {
+            color: var(--brand-light);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--bg2);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 2rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <a href="/" class="logo">
+                Port<span>avio</span>
+            </a>
+            <a href="/" class="back-link">← Back to Home</a>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: March 8, 2026</p>
+
+        <h2>1. Introduction</h2>
+        <p>
+            Welcome to Portavio ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, and safeguard your information when you use our portfolio intelligence platform.
+        </p>
+
+        <h2>2. Information We Collect</h2>
+        
+        <h3>2.1 Information You Provide</h3>
+        <ul>
+            <li><strong>Account Information:</strong> Name, email address, company name, and password</li>
+            <li><strong>Jira Connection Data:</strong> Jira instance URL, API tokens, and project data</li>
+            <li><strong>Billing Information:</strong> Payment details processed securely through Stripe</li>
+            <li><strong>Communications:</strong> Messages you send to our support team</li>
+        </ul>
+
+        <h3>2.2 Information We Collect Automatically</h3>
+        <ul>
+            <li><strong>Usage Data:</strong> How you interact with our platform</li>
+            <li><strong>Device Information:</strong> Browser type, IP address, operating system</li>
+            <li><strong>Cookies:</strong> We use cookies to maintain your session and improve your experience</li>
+        </ul>
+
+        <h2>3. How We Use Your Information</h2>
+        <p>We use your information to:</p>
+        <ul>
+            <li>Provide and maintain our services</li>
+            <li>Sync and analyze your Jira portfolio data</li>
+            <li>Process payments and manage subscriptions</li>
+            <li>Send important updates about your account</li>
+            <li>Improve our platform and develop new features</li>
+            <li>Prevent fraud and ensure security</li>
+            <li>Comply with legal obligations</li>
+        </ul>
+
+        <h2>4. Data Sharing and Disclosure</h2>
+        <p>We do not sell your personal data. We may share information with:</p>
+        <ul>
+            <li><strong>Service Providers:</strong> Neon (database), Railway (hosting), Vercel (frontend), Stripe (payments), Upstash (Redis)</li>
+            <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
+            <li><strong>Business Transfers:</strong> In connection with a merger, sale, or acquisition</li>
+        </ul>
+
+        <h2>5. Data Security</h2>
+        <p>
+            We implement industry-standard security measures to protect your data:
+        </p>
+        <ul>
+            <li>Encryption in transit (HTTPS/TLS)</li>
+            <li>Encrypted database storage</li>
+            <li>Secure API token handling</li>
+            <li>Regular security audits</li>
+            <li>Access controls and authentication</li>
+        </ul>
+
+        <h2>6. Data Retention</h2>
+        <p>
+            We retain your data for as long as your account is active or as needed to provide services. When you delete your account, we delete your personal data within 30 days, except where we're required to retain it for legal purposes.
+        </p>
+
+        <h2>7. Your Rights</h2>
+        <p>You have the right to:</p>
+        <ul>
+            <li><strong>Access:</strong> Request a copy of your personal data</li>
+            <li><strong>Correction:</strong> Update incorrect or incomplete information</li>
+            <li><strong>Deletion:</strong> Request deletion of your account and data</li>
+            <li><strong>Export:</strong> Download your data in a portable format</li>
+            <li><strong>Object:</strong> Object to certain data processing activities</li>
+            <li><strong>Withdraw Consent:</strong> Revoke consent for data processing</li>
+        </ul>
+
+        <h2>8. Cookies and Tracking</h2>
+        <p>We use cookies to:</p>
+        <ul>
+            <li>Keep you signed in</li>
+            <li>Remember your preferences</li>
+            <li>Understand how you use our platform</li>
+            <li>Improve performance and security</li>
+        </ul>
+        <p>You can control cookies through your browser settings.</p>
+
+        <h2>9. International Data Transfers</h2>
+        <p>
+            Your data may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.
+        </p>
+
+        <h2>10. Children's Privacy</h2>
+        <p>
+            Portavio is not intended for users under 18 years of age. We do not knowingly collect information from children.
+        </p>
+
+        <h2>11. Changes to This Policy</h2>
+        <p>
+            We may update this privacy policy from time to time. We will notify you of significant changes via email or through our platform.
+        </p>
+
+        <h2>12. Contact Us</h2>
+        <p>
+            If you have questions about this privacy policy or our data practices, please contact us at:
+        </p>
+        <p>
+            <strong>Email:</strong> <a href="mailto:privacy@portavio.io">privacy@portavio.io</a><br>
+            <strong>Address:</strong> Portavio GmbH, Munich, Germany
+        </p>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 Portavio. All rights reserved.</p>
+    </footer>
+</body>
+</html>
