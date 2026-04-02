@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide - Portavio</title>
+    <style>
+        :root {
+            --brand: #5b6af0;
+            --brand-dark: #4452d4;
+            --brand-light: #7c89f5;
+            --accent: #8b5cf6;
+            --bg: #0a0d1a;
+            --bg2: #0f1323;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(10, 13, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--text);
+        }
+
+        .logo span {
+            background: linear-gradient(135deg, var(--brand-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-link {
+            color: var(--brand-light);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 3rem;
+            padding: 3rem 2rem;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: sticky;
+            top: 100px;
+            height: fit-content;
+        }
+
+        .sidebar h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: var(--muted);
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover {
+            color: var(--text);
+            background: rgba(91, 106, 240, 0.1);
+        }
+
+        .nav-link.active {
+            color: var(--brand-light);
+            background: rgba(91, 106, 240, 0.15);
+            font-weight: 600;
+        }
+
+        /* Content */
+        .content {
+            max-width: 900px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--brand-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--muted);
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 4rem;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            scroll-margin-top: 100px;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+            scroll-margin-top: 100px;
+        }
+
+        h4 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        ul, ol {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+            color: var(--muted);
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+            line-height: 1.7;
+        }
+
+        strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        a {
+            color: var(--brand-light);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* Code blocks */
+        code {
+            background: rgba(91, 106, 240, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: var(--brand-light);
+        }
+
+        pre {
+            background: rgba(15, 19, 35, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text);
+        }
+
+        /* Info boxes */
+        .info-box {
+            background: rgba(91, 106, 240, 0.1);
+            border-left: 4px solid var(--brand);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 8px;
+        }
+
+        .info-box.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-left-color: var(--success);
+        }
+
+        .info-box.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--warning);
+        }
+
+        .info-box.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-left-color: var(--danger);
+        }
+
+        .info-box-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: rgba(15, 19, 35, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            background: rgba(91, 106, 240, 0.2);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        td {
+            padding: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--muted);
+        }
+
+        tr:hover {
+            background: rgba(91, 106, 240, 0.05);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .badge-success {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .badge-info {
+            background: rgba(91, 106, 240, 0.2);
+            color: var(--brand-light);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                top: 0;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .header, .sidebar {
+                display: none;
+            }
+
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                background: white;
+                color: black;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <a href="/" class="logo">
+                Port<span>avio</span>
+            </a>
+            <a href="/" class="back-link">← Back to App</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <nav>
+                <div class="nav-section">
+                    <h3>Getting Started</h3>
+                    <a href="#quick-start" class="nav-link active">Quick Start</a>
+                    <a href="#connecting-jira" class="nav-link">Connecting Jira</a>
+                    <a href="#first-sync" class="nav-link">First Sync</a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Jira Best Practices</h3>
+                    <a href="#issue-types" class="nav-link">Issue Types</a>
+                    <a href="#labels-tags" class="nav-link">Labels & Tags</a>
+                    <a href="#custom-fields" class="nav-link">Custom Fields</a>
+                    <a href="#sprints" class="nav-link">Sprint Setup</a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Using Portavio</h3>
+                    <a href="#dashboard" class="nav-link">Dashboard Overview</a>
+                    <a href="#risk-detection" class="nav-link">Risk Detection</a>
+                    <a href="#velocity-tracking" class="nav-link">Velocity Tracking</a>
+                    <a href="#team-load" class="nav-link">Team Load</a>
+                </div>
+
+                <div class="nav-section">
+                    <h3>Advanced</h3>
+                    <a href="#multiple-projects" class="nav-link">Multiple Projects</a>
+                    <a href="#dependencies" class="nav-link">Dependencies</a>
+                    <a href="#custom-workflows" class="nav-link">Custom Workflows</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Content -->
+        <main class="content">
+            <h1>Portavio User Guide</h1>
+            <p class="subtitle">
+                Everything you need to know to get the most out of your portfolio intelligence platform.
+            </p>
+
+            <!-- Quick Start -->
+            <h2 id="quick-start">🚀 Quick Start (5 Minutes)</h2>
+            
+            <div class="info-box success">
+                <div class="info-box-title">✅ What You'll Accomplish</div>
+                <p>Connect Jira, sync your first project, and see real-time portfolio insights in under 5 minutes.</p>
+            </div>
+
+            <h3>Step 1: Connect Your Jira Instance</h3>
+            <ol>
+                <li>Click <strong>"Connect Jira"</strong> in your Portavio dashboard</li>
+                <li>Enter your Jira Cloud URL (e.g., <code>yourcompany.atlassian.net</code>)</li>
+                <li>Generate an API token:
+                    <ul>
+                        <li>Go to <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">Atlassian API Tokens</a></li>
+                        <li>Click <strong>"Create API token"</strong></li>
+                        <li>Give it a name (e.g., "Portavio")</li>
+                        <li>Copy the token</li>
+                    </ul>
+                </li>
+                <li>Paste the token in Portavio</li>
+                <li>Click <strong>"Connect"</strong></li>
+            </ol>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Important</div>
+                <p>Use your Jira email address (usually your work email). The API token is tied to your Jira account permissions.</p>
+            </div>
+
+            <h3>Step 2: Sync Your First Project</h3>
+            <ol>
+                <li>After connecting, click <strong>"Sync Now"</strong></li>
+                <li>Portavio will automatically fetch:
+                    <ul>
+                        <li>All your projects</li>
+                        <li>Epics and stories</li>
+                        <li>Teams (if configured)</li>
+                        <li>Sprint data</li>
+                        <li>Issue relationships</li>
+                    </ul>
+                </li>
+                <li>First sync takes 30-60 seconds depending on data volume</li>
+                <li>Subsequent syncs are faster (incremental updates)</li>
+            </ol>
+
+            <h3>Step 3: Explore Your Dashboard</h3>
+            <p>Once synced, you'll see:</p>
+            <ul>
+                <li><strong>Overview:</strong> High-level portfolio metrics</li>
+                <li><strong>Projects:</strong> All projects with health status</li>
+                <li><strong>Teams:</strong> Velocity, capacity, and load</li>
+                <li><strong>Epics:</strong> Progress and dependencies</li>
+                <li><strong>Risks:</strong> Detected blockers and issues</li>
+            </ul>
+
+            <!-- Connecting Jira -->
+            <h2 id="connecting-jira">🔌 Connecting Jira Cloud</h2>
+
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>Jira Cloud account (not Jira Server/Data Center)</li>
+                <li>Project access (view permissions at minimum)</li>
+                <li>Admin permissions recommended for full features</li>
+            </ul>
+
+            <h3>API Token Permissions</h3>
+            <p>The API token inherits your Jira permissions. Portavio can only access data you can see in Jira.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Your Permission</th>
+                        <th>Portavio Can Access</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>View Issues</td>
+                        <td>✅ Read project, epic, issue data</td>
+                    </tr>
+                    <tr>
+                        <td>Browse Projects</td>
+                        <td>✅ See all accessible projects</td>
+                    </tr>
+                    <tr>
+                        <td>Administer Projects</td>
+                        <td>✅ Full access including custom fields</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Security</h3>
+            <ul>
+                <li>Tokens are encrypted in our database</li>
+                <li>We never share your data with third parties</li>
+                <li>You can revoke access anytime in Jira settings</li>
+                <li>Read-only access (Portavio never modifies Jira data)</li>
+            </ul>
+
+            <!-- First Sync -->
+            <h2 id="first-sync">🔄 First Sync</h2>
+
+            <h3>What Gets Synced?</h3>
+            <p>Portavio imports the following data from Jira:</p>
+
+            <h4>Projects</h4>
+            <ul>
+                <li>Project name, key, and description</li>
+                <li>Project type (Business, Software, Service Desk)</li>
+                <li>Project lead</li>
+                <li>Project status</li>
+            </ul>
+
+            <h4>Epics</h4>
+            <ul>
+                <li>Epic name and key</li>
+                <li>Epic status and progress</li>
+                <li>Story points (total and completed)</li>
+                <li>Start and due dates</li>
+                <li>All child issues</li>
+            </ul>
+
+            <h4>Issues (Stories, Tasks, Bugs)</h4>
+            <ul>
+                <li>Issue key, summary, description</li>
+                <li>Issue type, status, priority</li>
+                <li>Assignee and reporter</li>
+                <li>Story points</li>
+                <li>Sprint assignments</li>
+                <li>Labels and components</li>
+                <li>Parent/child relationships</li>
+            </ul>
+
+            <h4>Sprints</h4>
+            <ul>
+                <li>Sprint name and goal</li>
+                <li>Start and end dates</li>
+                <li>Sprint status (active, closed, future)</li>
+                <li>Committed vs completed story points</li>
+            </ul>
+
+            <h4>Teams (if configured in Jira)</h4>
+            <ul>
+                <li>Team name</li>
+                <li>Team members</li>
+                <li>Associated projects</li>
+            </ul>
+
+            <h3>Sync Frequency</h3>
+            <ul>
+                <li><strong>Manual:</strong> Click "Sync Now" anytime</li>
+                <li><strong>Automatic:</strong> Every 6 hours (configurable in Settings)</li>
+                <li><strong>Incremental:</strong> Only changed data is fetched after first sync</li>
+            </ul>
+
+            <div class="info-box">
+                <div class="info-box-title">💡 Pro Tip</div>
+                <p>Sync after major Jira updates (sprint planning, epic changes) to see real-time insights immediately.</p>
+            </div>
+
+            <!-- Issue Types -->
+            <h2 id="issue-types">📝 Issue Types - Best Practices</h2>
+
+            <p>Portavio works best when you follow these Jira issue type conventions:</p>
+
+            <h3>Epic</h3>
+            <p><strong>When to use:</strong> Large feature or initiative spanning multiple sprints</p>
+            <ul>
+                <li>Should contain 10-50 story points worth of work</li>
+                <li>Duration: 2-8 weeks typical</li>
+                <li>Has clear acceptance criteria</li>
+                <li>Assigned to one or more teams</li>
+            </ul>
+
+            <p><strong>Example:</strong> "User Authentication System", "Payment Gateway Integration"</p>
+
+            <div class="info-box success">
+                <div class="info-box-title">✅ Good Epic Sizing</div>
+                <p>Epics between 20-40 story points give the best velocity insights. Too small = noise, too large = hard to track.</p>
+            </div>
+
+            <h3>Story</h3>
+            <p><strong>When to use:</strong> User-facing functionality deliverable in one sprint</p>
+            <ul>
+                <li>Should be 1-8 story points</li>
+                <li>Completable in 1-5 days</li>
+                <li>Has clear definition of done</li>
+                <li>Assigned to one person</li>
+            </ul>
+
+            <p><strong>Example:</strong> "As a user, I can reset my password via email"</p>
+
+            <h3>Task</h3>
+            <p><strong>When to use:</strong> Technical work not directly user-facing</p>
+            <ul>
+                <li>Infrastructure, refactoring, documentation</li>
+                <li>1-5 story points</li>
+                <li>Supporting work for stories</li>
+            </ul>
+
+            <p><strong>Example:</strong> "Set up CI/CD pipeline", "Write API documentation"</p>
+
+            <h3>Bug</h3>
+            <p><strong>When to use:</strong> Something broken that needs fixing</p>
+            <ul>
+                <li>Use priority field: Blocker, Critical, Major, Minor</li>
+                <li>Link to affected epic/story</li>
+                <li>Track separately from feature velocity</li>
+            </ul>
+
+            <p><strong>Portavio uses bugs for:</strong></p>
+            <ul>
+                <li>Risk detection (too many bugs = quality issues)</li>
+                <li>Team load calculation</li>
+                <li>Sprint predictability</li>
+            </ul>
+
+            <h3>Sub-task</h3>
+            <p><strong>When to use:</strong> Breaking down a story into smaller pieces</p>
+            <ul>
+                <li>Technical steps to complete parent story</li>
+                <li>Don't estimate sub-tasks separately (story points on parent only)</li>
+                <li>Use for task distribution among team members</li>
+            </ul>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Common Mistake</div>
+                <p>Avoid putting story points on sub-tasks. Estimate the parent story only. Portavio calculates epic progress from parent issues.</p>
+            </div>
+
+            <!-- Labels & Tags -->
+            <h2 id="labels-tags">🏷️ Labels & Tags - What Portavio Looks For</h2>
+
+            <p>Portavio uses specific labels to enhance risk detection and insights. Here are the recommended labels:</p>
+
+            <h3>Risk & Blocker Labels</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Label</th>
+                        <th>Purpose</th>
+                        <th>Portavio Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>blocked</code></td>
+                        <td>Issue cannot proceed</td>
+                        <td>⚠️ Surfaces in Risk Dashboard</td>
+                    </tr>
+                    <tr>
+                        <td><code>blocker</code></td>
+                        <td>Critical blocker</td>
+                        <td>🚨 High priority alert</td>
+                    </tr>
+                    <tr>
+                        <td><code>at-risk</code></td>
+                        <td>Might not complete on time</td>
+                        <td>⚠️ Tracked for escalation</td>
+                    </tr>
+                    <tr>
+                        <td><code>dependency</code></td>
+                        <td>Depends on external team/work</td>
+                        <td>📊 Dependency mapping</td>
+                    </tr>
+                    <tr>
+                        <td><code>tech-debt</code></td>
+                        <td>Technical debt item</td>
+                        <td>📈 Tech debt tracking</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Category Labels</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Label</th>
+                        <th>Use Case</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>frontend</code></td>
+                        <td>UI/UX work</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend</code></td>
+                        <td>API/server work</td>
+                    </tr>
+                    <tr>
+                        <td><code>database</code></td>
+                        <td>Data model changes</td>
+                    </tr>
+                    <tr>
+                        <td><code>infrastructure</code></td>
+                        <td>DevOps, deployment</td>
+                    </tr>
+                    <tr>
+                        <td><code>security</code></td>
+                        <td>Security-related work</td>
+                    </tr>
+                    <tr>
+                        <td><code>performance</code></td>
+                        <td>Optimization work</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Priority Labels (If Not Using Priority Field)</h3>
+            <ul>
+                <li><code>urgent</code> - Must do now</li>
+                <li><code>high-priority</code> - Important, do soon</li>
+                <li><code>nice-to-have</code> - Can be deferred</li>
+            </ul>
+
+            <div class="info-box">
+                <div class="info-box-title">💡 Label Hygiene</div>
+                <p>Keep labels consistent! Create a team label guide and stick to it. Portavio's insights are only as good as your Jira data.</p>
+            </div>
+
+            <!-- Custom Fields -->
+            <h2 id="custom-fields">⚙️ Custom Fields Portavio Recognizes</h2>
+
+            <h3>Story Points</h3>
+            <p><strong>Field Name:</strong> "Story Points" or "Estimate"</p>
+            <ul>
+                <li>Used for velocity calculation</li>
+                <li>Epic progress tracking</li>
+                <li>Sprint capacity planning</li>
+            </ul>
+
+            <p><strong>Best Practice:</strong> Use Fibonacci sequence (1, 2, 3, 5, 8, 13, 21)</p>
+
+            <h3>Epic Link</h3>
+            <p><strong>Field Name:</strong> "Epic Link"</p>
+            <ul>
+                <li>Links stories to epics</li>
+                <li>Required for epic progress tracking</li>
+                <li>Portavio automatically rolls up story points to epic</li>
+            </ul>
+
+            <h3>Sprint</h3>
+            <p><strong>Field Name:</strong> "Sprint"</p>
+            <ul>
+                <li>Assigns issues to sprints</li>
+                <li>Used for velocity calculation</li>
+                <li>Sprint burndown tracking</li>
+            </ul>
+
+            <h3>Team (Optional)</h3>
+            <p><strong>Field Name:</strong> "Team" (if you have a team custom field)</p>
+            <ul>
+                <li>Associates issues with specific teams</li>
+                <li>Enables team-based velocity tracking</li>
+                <li>Team load balancing</li>
+            </ul>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Missing Fields?</div>
+                <p>If Portavio isn't showing velocity or epic progress, check that Story Points and Epic Link fields exist in your Jira project.</p>
+            </div>
+
+            <!-- Sprint Setup -->
+            <h2 id="sprints">🏃 Sprint Setup for Best Results</h2>
+
+            <h3>Sprint Naming Convention</h3>
+            <p>Use consistent naming for better tracking:</p>
+            <ul>
+                <li><strong>Good:</strong> "Sprint 24", "Team Alpha Sprint 15", "2024-W12"</li>
+                <li><strong>Bad:</strong> "The Sprint", "New Sprint", "Sprint"</li>
+            </ul>
+
+            <h3>Sprint Duration</h3>
+            <p><strong>Recommended:</strong> 2 weeks (10 business days)</p>
+            <ul>
+                <li>Long enough to complete meaningful work</li>
+                <li>Short enough for quick feedback</li>
+                <li>Easier velocity comparison</li>
+            </ul>
+
+            <h3>Sprint Planning Checklist</h3>
+            <ol>
+                <li>Set sprint start and end dates</li>
+                <li>Define sprint goal</li>
+                <li>Assign story points to all stories</li>
+                <li>Link stories to epics</li>
+                <li>Assign stories to team members</li>
+                <li>Mark dependencies with labels</li>
+            </ol>
+
+            <h3>Sprint Commitment</h3>
+            <p>Portavio tracks committed vs. completed points:</p>
+            <ul>
+                <li><strong>Committed:</strong> Total story points at sprint start</li>
+                <li><strong>Completed:</strong> Story points of "Done" issues at sprint end</li>
+                <li><strong>Predictability:</strong> Completed / Committed ratio</li>
+            </ul>
+
+            <div class="info-box success">
+                <div class="info-box-title">✅ Good Predictability</div>
+                <p>Teams with 80%+ predictability consistently deliver what they commit to. Portavio highlights teams below this threshold.</p>
+            </div>
+
+            <!-- Dashboard Overview -->
+            <h2 id="dashboard">📊 Dashboard Overview</h2>
+
+            <h3>Overview Page</h3>
+            <p>Your portfolio at a glance:</p>
+            <ul>
+                <li><strong>Total Projects:</strong> Count and breakdown by health</li>
+                <li><strong>Active Epics:</strong> In progress vs. completed</li>
+                <li><strong>Team Velocity:</strong> Average across all teams</li>
+                <li><strong>Risks:</strong> Current blockers and issues</li>
+            </ul>
+
+            <h3>Projects Page</h3>
+            <p>All projects with health indicators:</p>
+            <ul>
+                <li><span class="badge badge-success">Green</span> On track, no blockers</li>
+                <li><span class="badge badge-warning">Yellow</span> Minor issues, needs attention</li>
+                <li><span class="badge badge-warning">Red</span> Critical blockers or delays</li>
+            </ul>
+
+            <h3>Teams Page</h3>
+            <p>Team performance metrics:</p>
+            <ul>
+                <li><strong>Velocity:</strong> Average story points per sprint</li>
+                <li><strong>Capacity:</strong> Max story points team can handle</li>
+                <li><strong>Current Load:</strong> % of capacity used</li>
+                <li><strong>Predictability:</strong> Delivery consistency score</li>
+            </ul>
+
+            <h3>Epics Page</h3>
+            <p>Epic progress and status:</p>
+            <ul>
+                <li>Progress bar (completed / total story points)</li>
+                <li>Start and due dates</li>
+                <li>Assigned teams</li>
+                <li>Blocking issues</li>
+            </ul>
+
+            <!-- Risk Detection -->
+            <h2 id="risk-detection">🚨 Risk Detection</h2>
+
+            <p>Portavio automatically detects these risks:</p>
+
+            <h3>Blocker Detection</h3>
+            <ul>
+                <li>Issues with <code>blocked</code> or <code>blocker</code> labels</li>
+                <li>Issues in "Blocked" status</li>
+                <li>Issues with links to blocking issues</li>
+            </ul>
+
+            <h3>Epic at Risk</h3>
+            <p>Portavio flags epics as at-risk when:</p>
+            <ul>
+                <li>Less than 30% complete with less than 30% time remaining</li>
+                <li>No progress in 2+ weeks</li>
+                <li>Multiple blocking issues</li>
+                <li>Assigned team is overloaded (>100% capacity)</li>
+            </ul>
+
+            <h3>Team Overload</h3>
+            <ul>
+                <li>Current sprint commitment > team's average velocity</li>
+                <li>Team assigned to too many simultaneous epics</li>
+                <li>Sprint contains too many critical bugs</li>
+            </ul>
+
+            <h3>Velocity Drop</h3>
+            <ul>
+                <li>Current sprint velocity < 70% of team average</li>
+                <li>Downward trend over 3+ sprints</li>
+                <li>Predictability score < 60%</li>
+            </ul>
+
+            <div class="info-box danger">
+                <div class="info-box-title">🚨 When Portavio Alerts You</div>
+                <p>Take action immediately on Critical risks. Review Medium risks within 1-2 days. Low risks are informational.</p>
+            </div>
+
+            <!-- Velocity Tracking -->
+            <h2 id="velocity-tracking">📈 Velocity Tracking</h2>
+
+            <h3>How Velocity is Calculated</h3>
+            <pre><code>Velocity = Σ(Completed Story Points) / Number of Sprints</code></pre>
+
+            <p>Portavio uses the last 6 sprints by default (configurable).</p>
+
+            <h3>Understanding Your Velocity</h3>
+            <ul>
+                <li><strong>20-30 points/sprint:</strong> Small team (2-3 people)</li>
+                <li><strong>30-50 points/sprint:</strong> Medium team (4-6 people)</li>
+                <li><strong>50-80 points/sprint:</strong> Large team (7-10 people)</li>
+            </ul>
+
+            <h3>Velocity Trends</h3>
+            <p>Portavio shows velocity over time:</p>
+            <ul>
+                <li><strong>Upward trend:</strong> Team improving, getting faster</li>
+                <li><strong>Stable:</strong> Consistent delivery (good!)</li>
+                <li><strong>Downward trend:</strong> Investigate: too much WIP? Blockers? Team changes?</li>
+            </ul>
+
+            <h3>Predictability Score</h3>
+            <pre><code>Predictability = (Completed Points / Committed Points) × 100%</code></pre>
+
+            <p>What scores mean:</p>
+            <ul>
+                <li><strong>90-100%:</strong> Excellent - team delivers consistently</li>
+                <li><strong>80-89%:</strong> Good - minor variance is normal</li>
+                <li><strong>70-79%:</strong> Fair - review sprint planning process</li>
+                <li><strong><70%:</strong> Poor - team overcommitting or facing blockers</li>
+            </ul>
+
+            <!-- Team Load -->
+            <h2 id="team-load">⚖️ Team Load Management</h2>
+
+            <h3>How Load is Calculated</h3>
+            <pre><code>Load = (Current Sprint Points / Team Velocity) × 100%</code></pre>
+
+            <h3>Load Indicators</h3>
+            <ul>
+                <li><strong>0-70%:</strong> <span class="badge badge-success">Under capacity</span> - team can take more work</li>
+                <li><strong>70-90%:</strong> <span class="badge badge-info">Optimal</span> - good utilization</li>
+                <li><strong>90-110%:</strong> <span class="badge badge-warning">Near capacity</span> - watch closely</li>
+                <li><strong>>110%:</strong> <span class="badge badge-warning">Overloaded</span> - at risk of burnout/missed commitments</li>
+            </ul>
+
+            <h3>Balancing Team Load</h3>
+            <p>When teams are overloaded:</p>
+            <ol>
+                <li>Move non-critical stories to next sprint</li>
+                <li>Defer "nice-to-have" work</li>
+                <li>Check for hidden work (bugs, support)</li>
+                <li>Distribute work to underutilized teams</li>
+            </ol>
+
+            <div class="info-box">
+                <div class="info-box-title">💡 Pro Tip</div>
+                <p>Aim for 80-85% capacity. This leaves buffer for unexpected work, bugs, and meetings.</p>
+            </div>
+
+            <!-- Multiple Projects -->
+            <h2 id="multiple-projects">🗂️ Managing Multiple Projects</h2>
+
+            <h3>Project Organization</h3>
+            <p>Portavio supports portfolios with dozens of projects. Best practices:</p>
+
+            <h4>Naming Convention</h4>
+            <ul>
+                <li>Use prefixes: <code>MOBILE-</code>, <code>API-</code>, <code>WEB-</code></li>
+                <li>Keep names under 30 characters</li>
+                <li>Avoid generic names like "Project 1"</li>
+            </ul>
+
+            <h4>Project Health</h4>
+            <p>Set health manually or let Portavio auto-detect:</p>
+            <ul>
+                <li><strong>Green:</strong> All epics on track, no blockers</li>
+                <li><strong>Yellow:</strong> 1-2 minor issues</li>
+                <li><strong>Red:</strong> Critical blockers or delayed epics</li>
+            </ul>
+
+            <h3>Cross-Project Dependencies</h3>
+            <p>Use Jira issue links to connect dependencies across projects:</p>
+            <ul>
+                <li>"Blocks" / "Is blocked by"</li>
+                <li>"Relates to"</li>
+                <li>"Depends on"</li>
+            </ul>
+
+            <p>Portavio visualizes cross-project dependencies in the Epics view.</p>
+
+            <!-- Dependencies -->
+            <h2 id="dependencies">🔗 Managing Dependencies</h2>
+
+            <h3>Types of Dependencies</h3>
+
+            <h4>1. Epic Dependencies</h4>
+            <p>One epic blocks another:</p>
+            <ul>
+                <li>Link epics in Jira: "Epic A blocks Epic B"</li>
+                <li>Portavio shows dependency chain</li>
+                <li>Alerts if blocking epic is delayed</li>
+            </ul>
+
+            <h4>2. Team Dependencies</h4>
+            <p>One team waiting on another:</p>
+            <ul>
+                <li>Label stories with <code>dependency</code></li>
+                <li>Mention blocking team in comments</li>
+                <li>Track in Portavio's dependency view</li>
+            </ul>
+
+            <h4>3. External Dependencies</h4>
+            <p>Waiting on vendors, partners, or other systems:</p>
+            <ul>
+                <li>Create "External Dependency" issue type (or use Task)</li>
+                <li>Link to dependent stories</li>
+                <li>Label with <code>external</code></li>
+            </ul>
+
+            <h3>Dependency Best Practices</h3>
+            <ol>
+                <li><strong>Make dependencies explicit</strong> - always create Jira links</li>
+                <li><strong>Identify early</strong> - flag dependencies during sprint planning</li>
+                <li><strong>Track in standup</strong> - "What are you blocked by?"</li>
+                <li><strong>Escalate delays</strong> - if blocking work is delayed, escalate immediately</li>
+            </ol>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Dependency Anti-Pattern</div>
+                <p>Don't let dependencies surprise you mid-sprint. Review all dependencies during planning and ensure blocking work is scheduled first.</p>
+            </div>
+
+            <!-- Custom Workflows -->
+            <h2 id="custom-workflows">🔄 Custom Workflows</h2>
+
+            <h3>Standard Workflow</h3>
+            <p>Portavio works best with this flow:</p>
+            <pre><code>To Do → In Progress → Code Review → Testing → Done</code></pre>
+
+            <h3>Custom Status Mapping</h3>
+            <p>If you use different status names, Portavio maps them automatically:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Your Status</th>
+                        <th>Portavio Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Backlog, To Do, Open</td>
+                        <td>Not Started</td>
+                    </tr>
+                    <tr>
+                        <td>In Progress, In Development, WIP</td>
+                        <td>In Progress</td>
+                    </tr>
+                    <tr>
+                        <td>Code Review, QA, Testing, UAT</td>
+                        <td>In Review</td>
+                    </tr>
+                    <tr>
+                        <td>Done, Closed, Resolved, Deployed</td>
+                        <td>Complete</td>
+                    </tr>
+                    <tr>
+                        <td>Blocked, On Hold, Waiting</td>
+                        <td>Blocked</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>What "Done" Means</h3>
+            <p>For velocity calculation, Portavio counts issues as complete when:</p>
+            <ul>
+                <li>Status is in "Done" category</li>
+                <li>Resolution is set (if your workflow uses resolutions)</li>
+                <li>Issue is in closed sprint</li>
+            </ul>
+
+            <div class="info-box">
+                <div class="info-box-title">💡 Definition of Done</div>
+                <p>Make sure your team has a clear Definition of Done. Inconsistent completion criteria leads to inaccurate velocity tracking.</p>
+            </div>
+
+            <!-- FAQ Section -->
+            <h2>❓ Frequently Asked Questions</h2>
+
+            <h3>How often should I sync?</h3>
+            <p>Default is every 6 hours. Sync manually after sprint planning, major epic updates, or before important meetings.</p>
+
+            <h3>Why is my velocity zero?</h3>
+            <p>Check:</p>
+            <ul>
+                <li>Story points field is populated</li>
+                <li>Issues are in closed sprints</li>
+                <li>Issues have "Done" status</li>
+                <li>At least one sprint is complete</li>
+            </ul>
+
+            <h3>Can I use Portavio with Jira Server?</h3>
+            <p>Not yet. Portavio currently supports Jira Cloud only. Jira Server/Data Center support is on our roadmap.</p>
+
+            <h3>What if I don't use story points?</h3>
+            <p>Some features (velocity, predictability) require story points. You can still use Portavio for project tracking and risk detection.</p>
+
+            <h3>How do I invite team members?</h3>
+            <p>Go to Settings → Team Members → Invite. They'll receive an email invitation.</p>
+
+            <h3>Can I export data?</h3>
+            <p>Yes! Go to Settings → Export Data to download CSV or JSON of your portfolio data.</p>
+
+            <h3>Is my Jira data secure?</h3>
+            <p>Yes. We use bank-level encryption, never share data with third parties, and are SOC 2 compliant.</p>
+
+            <!-- Support Section -->
+            <div class="info-box" style="margin-top: 4rem;">
+                <div class="info-box-title">💬 Need Help?</div>
+                <p>
+                    <strong>Email:</strong> <a href="mailto:support@portavio.io">support@portavio.io</a><br>
+                    <strong>Response time:</strong> Within 24 hours<br>
+                    <strong>Documentation:</strong> <a href="/documentation.html">docs.portavio.io</a>
+                </p>
+            </div>
+
+            <p style="margin-top: 3rem; color: var(--muted); font-size: 0.9rem;">
+                Last updated: March 8, 2026 • <a href="/">Back to Dashboard</a>
+            </p>
+        </main>
+    </div>
+</body>
+</html>
