@@ -574,15 +574,19 @@ async function syncJiraData(connection) {
 
   for (const epic of allEpics.rows) {
     try {
-      // Step 1: Get issues for this epic from Jira Software API and link them
+      // Get issues for this epic using JQL (parent field)
       const epicIssues = await axios.get(
-        `${jira.jiraUrl}/rest/agile/1.0/epic/${epic.jira_epic_id}/issue`,
+        `${jira.jiraUrl}/rest/api/3/search`,
         {
           headers: { 
             Authorization: jira.authHeader,
             Accept: 'application/json' 
           },
-          params: { maxResults: 1000 },
+          params: { 
+            jql: `parent = ${epic.jira_epic_key}`,
+            maxResults: 1000,
+            fields: 'key'
+          },
           timeout: 30000
         }
       );
@@ -600,8 +604,12 @@ async function syncJiraData(connection) {
         if (result.rowCount > 0) linkedCount++;
       }
       
+      if (issues.length > 0) {
+        console.log(`   ✅ Linked ${issues.length} issues to ${epic.jira_epic_key}`);
+      }
+      
     } catch (err) {
-      console.log(`   ⚠️  Could not get issues for epic ${epic.jira_epic_id}: ${err.message}`);
+      console.log(`   ⚠️  Could not get issues for ${epic.jira_epic_key}: ${err.message}`);
     }
 
     // Step 2: Calculate progress for this epic
@@ -634,7 +642,6 @@ async function syncJiraData(connection) {
 
   console.log(`✅ Linked ${linkedCount} issues to epics`);
   console.log(`✅ Calculated progress for ${allEpics.rows.length} epics`);
-
 
   // ------------------------------------------------------------------
   // 3. TEAMS (boards) + SPRINTS
