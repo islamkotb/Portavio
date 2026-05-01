@@ -353,7 +353,7 @@
 const API = 'https://api.portavio.io';
 let token=localStorage.getItem('pv_token')||null, uname=localStorage.getItem('pv_user')||'', vc=null, curPage='overview';
 const pgT={overview:'Dashboard',projects:'Projects',teams:'Teams',epics:'Epics',dependencies:'Dependencies',timeline:'Timeline / Roadmap',risks:'Risk Register',blockers:'Active Blockers',velocity:'Team Velocity',predictability:'Predictability'};
-const hmap={'on-track':'ok','at-risk':'warn','blocked':'bad','active':'info','planned':'gray','in-progress':'info','done':'ok','completed':'ok','open':'warn','resolved':'ok'};
+const hmap={'healthy':'ok','on-track':'ok','at-risk':'warn','needs-attention':'warn','blocked':'bad','active':'info','planned':'gray','planning':'gray','in-progress':'info','done':'ok','completed':'ok','open':'warn','resolved':'ok'};
 const badge=v=>`<span class="badge b-${hmap[v?.toLowerCase()]||'gray'}">${v||'?'}</span>`;
 const bar=(p,c='pb-brand')=>`<div class="pb-wrap"><div class="pb ${c}" style="width:${Math.min(p||0,100)}%"></div></div>`;
 const lc=l=>l>=90?'pb-red':l>=75?'pb-yellow':'pb-green';
