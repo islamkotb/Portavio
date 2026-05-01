@@ -568,21 +568,28 @@ async function syncJiraData(connection) {
         }
 
         await pool.query(
-          `INSERT INTO issues (jira_connection_id, project_id, epic_id, sprint_id,
-             jira_issue_id, jira_issue_key, summary, issue_type, status, priority,
-             story_points, assignee_name, assignee_account_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-           ON CONFLICT (jira_connection_id, jira_issue_id)
-           DO UPDATE SET status=EXCLUDED.status, sprint_id=EXCLUDED.sprint_id,
-             story_points=EXCLUDED.story_points, updated_at=NOW()`,
-          [connectionId, projectDbId, epicDbId, sprintDbId,
-           issue.id, issue.key, issue.fields.summary,
-           issue.fields.issuetype.name, issue.fields.status.name,
-           issue.fields.priority?.name || null,
-           storyPoints,
-           issue.fields.assignee?.displayName || null,
-           issue.fields.assignee?.accountId || null]
-        );
+  `INSERT INTO issues (jira_connection_id, project_id, epic_id, sprint_id,
+     jira_issue_id, jira_issue_key, summary, issue_type, status, priority,
+     story_points, assignee, assignee_name, assignee_account_id)
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+   ON CONFLICT (jira_connection_id, jira_issue_id)
+   DO UPDATE SET 
+     status=EXCLUDED.status, 
+     sprint_id=EXCLUDED.sprint_id,
+     story_points=EXCLUDED.story_points, 
+     assignee=EXCLUDED.assignee,
+     assignee_name=EXCLUDED.assignee_name,
+     assignee_account_id=EXCLUDED.assignee_account_id,
+     updated_at=NOW()`,
+  [connectionId, projectDbId, epicDbId, sprintDbId,
+   issue.id, issue.key, issue.fields.summary,
+   issue.fields.issuetype.name, issue.fields.status.name,
+   issue.fields.priority?.name || null,
+   storyPoints,
+   issue.fields.assignee?.displayName || null,  // assignee
+   issue.fields.assignee?.displayName || null,  // assignee_name (backward compat)
+   issue.fields.assignee?.accountId || null]    // assignee_account_id
+);
         stats.issues++;
       }
     }
