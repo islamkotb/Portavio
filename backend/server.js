@@ -596,14 +596,63 @@ async function syncJiraData(connection) {
       );
       stats.sprints++;
 
-      // ------------------------------------------------------------------
-	// ------------------------------------------------------------------
-  // 4. LINK ISSUES TO EPICS VIA PARENT FIELD
+      // Get sprint DB ID for issue linking
+      const sprintRow = await pool.query(
+        'SELECT id FROM sprints WHERE jira_sprint_id=$1 AND jira_connection_id=$2',
+        [s.id.toString(), connectionId]
+      );
+      if (!sprintRow.rows.length) continue;
+      const sprintDbId = sprintRow.rows[0].id;
+
+      // Sync issues for this sprint
+      const sprintIssues = await jira.getSprintIssues(s.id);
+      for (const issue of sprintIssues) {
+        // Story points
+        const storyPoints = issue.fields.customfield_10016 || 0;
+
+        // Resolve project
+        const issueProjectKey = issue.key.split('-')[0];
+        const pRow = await pool.query(
+          'SELECT id FROM projects WHERE jira_project_key=$1 AND jira_connection_id=$2',
+          [issueProjectKey, connectionId]
+        );
+        const projectDbId = pRow.rows[0]?.id || null;
+
+        // Insert issue
+        await pool.query(
+          `INSERT INTO issues (jira_connection_id, project_id, sprint_id,
+             jira_issue_id, jira_issue_key, summary, issue_type, status, priority,
+             story_points, assignee, assignee_name, assignee_account_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+           ON CONFLICT (jira_connection_id, jira_issue_id)
+           DO UPDATE SET 
+             status=EXCLUDED.status, 
+             sprint_id=EXCLUDED.sprint_id,
+             story_points=EXCLUDED.story_points, 
+             assignee=EXCLUDED.assignee,
+             assignee_name=EXCLUDED.assignee_name,
+             assignee_account_id=EXCLUDED.assignee_account_id,
+             updated_at=NOW()`,
+          [connectionId, projectDbId, sprintDbId,
+           issue.id, issue.key, issue.fields.summary,
+           issue.fields.issuetype.name, issue.fields.status.name,
+           issue.fields.priority?.name || null,
+           storyPoints,
+           issue.fields.assignee?.displayName || null,
+           issue.fields.assignee?.displayName || null,
+           issue.fields.assignee?.accountId || null]
+        );
+        stats.issues++;
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 4. LINK ISSUES TO EPICS VIA PARENT FIELD  
   // ------------------------------------------------------------------
   console.log('🔗 Linking issues to epics via parent field...');
   let linkedCount = 0;
   
-  // Get all issues that need linking
   const unlinkedIssues = await pool.query(
     'SELECT id, jira_issue_key FROM issues WHERE epic_id IS NULL AND jira_connection_id = $1',
     [connectionId]
@@ -613,7 +662,6 @@ async function syncJiraData(connection) {
   
   for (const issue of unlinkedIssues.rows) {
     try {
-      // Fetch parent field from REST API v2 (Agile API doesn't return parent)
       const issueDetail = await axios.get(
         `${jira.jiraUrl}/rest/api/2/issue/${issue.jira_issue_key}`,
         {
@@ -621,9 +669,7 @@ async function syncJiraData(connection) {
             Authorization: jira.authHeader,
             Accept: 'application/json' 
           },
-          params: {
-            fields: 'parent'
-          },
+          params: { fields: 'parent' },
           timeout: 5000
         }
       );
@@ -631,28 +677,25 @@ async function syncJiraData(connection) {
       const epicKey = issueDetail.data.fields?.parent?.key;
       
       if (epicKey) {
-        // Find epic in database
         const eRow = await pool.query(
           'SELECT id FROM epics WHERE jira_epic_key=$1 AND jira_connection_id=$2',
           [epicKey, connectionId]
         );
         
         if (eRow.rows.length > 0) {
-          // Link issue to epic
           await pool.query(
             'UPDATE issues SET epic_id = $1 WHERE id = $2',
             [eRow.rows[0].id, issue.id]
           );
           linkedCount++;
           
-          // Log first 10 links
           if (linkedCount <= 10) {
             console.log(`   ✅ Linked ${issue.jira_issue_key} to epic ${epicKey}`);
           }
         }
       }
     } catch (err) {
-      // Skip issues that fail (might not have parent or API error)
+      // Skip issues that fail
     }
   }
   
@@ -699,8 +742,7 @@ async function syncJiraData(connection) {
   
   console.log(`✅ Calculated progress for ${allEpicsForProgress.rows.length} epics`);
 
-  
-
+ 
   // ------------------------------------------------------------------
   // 5. POPULATE JUNCTION TABLE: team_projects
   //    Infer from issues: if a team's sprint contains issues from project X → link them
