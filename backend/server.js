@@ -11,6 +11,8 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 const app = express();
+// Trust Railway proxy
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 
 // ============================================================================
