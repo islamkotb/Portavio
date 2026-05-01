@@ -623,6 +623,12 @@ async function syncJiraData(connection) {
         let epicDbId = null;
         let epicKey = null;
         
+        // DEBUG: Log parent field for first 3 issues
+        if (stats.issues < 3) {
+          console.log(`\n🔍 Issue ${issue.key} parent field:`, JSON.stringify(issue.fields.parent, null, 2));
+          console.log(`   All fields:`, Object.keys(issue.fields));
+        }
+        
         // Try parent field (Jira Cloud standard)
         if (issue.fields.parent?.key) {
           epicKey = issue.fields.parent.key;
@@ -643,7 +649,11 @@ async function syncJiraData(connection) {
           
           if (epicDbId && stats.issues < 10) {
             console.log(`   ✅ Linked ${issue.key} to epic ${epicKey}`);
+          } else if (!epicDbId && epicKey) {
+            console.log(`   ⚠️ Epic ${epicKey} not found in database for issue ${issue.key}`);
           }
+        } else if (stats.issues < 3) {
+          console.log(`   ⚠️ No epic key found for ${issue.key}`);
         }
 
         await pool.query(
