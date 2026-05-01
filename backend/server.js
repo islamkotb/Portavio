@@ -560,9 +560,54 @@ async function syncJiraData(connection) {
 	}
   }
   console.log(`✅ Synced ${stats.epics} epics total`);
+  // ------------------------------------------------------------------
+  // 2b. LINK ISSUES TO EPICS
+  // ------------------------------------------------------------------
+  console.log('🔗 Linking issues to epics...');
+  let linkedCount = 0;
+
+  const allEpics = await pool.query(
+    'SELECT id, jira_epic_id FROM epics WHERE jira_connection_id = $1',
+    [connectionId]
+  );
+
+  for (const epic of allEpics.rows) {
+    try {
+      // Get issues for this epic from Jira Software API
+      const epicIssues = await axios.get(
+        `${jira.jiraUrl}/rest/agile/1.0/epic/${epic.jira_epic_id}/issue`,
+        {
+          headers: { 
+            Authorization: jira.authHeader,
+            Accept: 'application/json' 
+          },
+          params: { maxResults: 1000 },
+          timeout: 30000
+        }
+      );
+
+      const issues = epicIssues.data.issues || [];
+      
+      for (const issue of issues) {
+        // Update issue with epic_id
+        const result = await pool.query(
+          `UPDATE issues 
+           SET epic_id = $1 
+           WHERE jira_issue_key = $2 AND jira_connection_id = $3`,
+          [epic.id, issue.key, connectionId]
+        );
+        if (result.rowCount > 0) linkedCount++;
+      }
+      
+    } catch (err) {
+      console.log(`   ⚠️  Could not get issues for epic ${epic.jira_epic_id}: ${err.message}`);
+    }
+  }
+
+  console.log(`✅ Linked ${linkedCount} issues to epics`);
   
   // ------------------------------------------------------------------
-  // 2b. CALCULATE EPIC PROGRESS
+  // 2c. CALCULATE EPIC PROGRESS
   // ------------------------------------------------------------------
   console.log('📊 Calculating epic progress...');
   const allEpics = await pool.query(
