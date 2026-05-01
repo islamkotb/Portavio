@@ -744,43 +744,131 @@ async function syncJiraData(connection) {
   }
 
   // ------------------------------------------------------------------
-  // 10. BLOCKERS
+  // 10. BLOCKERS - Multiple detection methods
   // ------------------------------------------------------------------
   console.log('🚫 Syncing blockers...');
-  const blockers = await jira.getBlockers();
-  for (const b of blockers) {
-    const pRow = await pool.query(
-      'SELECT id FROM projects WHERE jira_project_key=$1 AND jira_connection_id=$2',
-      [b.fields.project.key, connectionId]
-    );
-    const projectDbId = pRow.rows[0]?.id || null;
 
-    // Try to find the issue and its team via sprint
-    const issueRow = await pool.query(
-      'SELECT id, sprint_id, epic_id FROM issues WHERE jira_issue_key=$1 AND jira_connection_id=$2',
-      [b.key, connectionId]
-    );
-    const issueDbId = issueRow.rows[0]?.id || null;
-    const epicDbId  = issueRow.rows[0]?.epic_id || null;
+  // Method 1: Issues with blocked status or labels (existing method)
+  console.log('   Method 1: Detecting blocked issues via status/labels...');
+  const blockedIssues = await jira.getBlockers();
+  let blockersFromStatus = 0;
 
-    let teamDbId = null;
-    if (issueRow.rows[0]?.sprint_id) {
-      const spRow = await pool.query('SELECT team_id FROM sprints WHERE id=$1', [issueRow.rows[0].sprint_id]);
-      teamDbId = spRow.rows[0]?.team_id || null;
-    }
+  for (const b of blockedIssues) {
+	  try {
+		const pRow = await pool.query(
+		  'SELECT id FROM projects WHERE jira_project_key=$1 AND jira_connection_id=$2',
+		  [b.fields.project.key, connectionId]
+		);
+		const projectDbId = pRow.rows[0]?.id || null;
 
-    await pool.query(
-      `INSERT INTO blockers (jira_connection_id, issue_id, team_id, epic_id, project_id,
-         jira_issue_key, title, description, status, blocked_since, auto_detected)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true)
-       ON CONFLICT DO NOTHING`,
-      [connectionId, issueDbId, teamDbId, epicDbId, projectDbId, b.key,
-       b.fields.summary, b.fields.description || '',
-       b.fields.status.name.toLowerCase().includes('done') ? 'resolved' : 'active',
-       b.fields.created ? new Date(b.fields.created) : new Date()]
-    );
-    stats.blockers++;
+		const issueRow = await pool.query(
+		  'SELECT id, sprint_id, epic_id FROM issues WHERE jira_issue_key=$1 AND jira_connection_id=$2',
+		  [b.key, connectionId]
+		);
+		const issueDbId = issueRow.rows[0]?.id || null;
+		const epicDbId  = issueRow.rows[0]?.epic_id || null;
+
+		let teamDbId = null;
+		if (issueRow.rows[0]?.sprint_id) {
+		  const spRow = await pool.query('SELECT team_id FROM sprints WHERE id=$1', [issueRow.rows[0].sprint_id]);
+		  teamDbId = spRow.rows[0]?.team_id || null;
+		}
+
+		await pool.query(
+		  `INSERT INTO blockers (jira_connection_id, issue_id, team_id, epic_id, project_id,
+			 jira_issue_key, title, description, status, blocked_since, auto_detected)
+		   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true)
+		   ON CONFLICT (jira_issue_key, jira_connection_id)
+		   DO UPDATE SET title = EXCLUDED.title, status = EXCLUDED.status, updated_at = NOW()`,
+		  [connectionId, issueDbId, teamDbId, epicDbId, projectDbId, b.key,
+		   b.fields.summary, b.fields.description || '',
+		   b.fields.status.name.toLowerCase().includes('done') ? 'resolved' : 'active',
+		   b.fields.created ? new Date(b.fields.created) : new Date()]
+		);
+		blockersFromStatus++;
+		stats.blockers++;
+	  } catch (err) {
+		console.error(`   ⚠️  Failed to insert blocker ${b.key}:`, err.message);
+	  }
+	}
+  console.log(`   ✅ Found ${blockersFromStatus} blockers via status/labels`);
+
+  // Method 2: Parse "blocked by" issue links
+  console.log('   Method 2: Detecting blockers via issue links...');
+  let blockersFromLinks = 0;
+
+  for (const p of projects) {
+	const issuesWithLinks = await jira.getIssuesWithLinks(p.key);
+  
+	for (const issue of issuesWithLinks) {
+		const issueLinks = issue.fields.issuelinks || [];
+    
+		for (const link of issueLinks) {
+			const linkType = link.type?.name?.toLowerCase() || '';
+			const isBlockedBy = linkType.includes('block') || linkType.includes('depend');
+      
+			if (!isBlockedBy) continue;
+      
+			let blockedIssue = null;
+			let blockingIssue = null;
+      
+			if (link.inwardIssue && link.type?.inward?.toLowerCase().includes('block')) {
+			blockedIssue = issue;
+			blockingIssue = link.inwardIssue;
+		} else if (link.outwardIssue && link.type?.outward?.toLowerCase().includes('block')) {
+			blockedIssue = link.outwardIssue;
+			blockingIssue = issue;
+		  }
+      
+		if (!blockedIssue || !blockingIssue) continue;
+      
+		try {
+			const pRow = await pool.query(
+			'SELECT id FROM projects WHERE jira_project_key=$1 AND jira_connection_id=$2',
+			[blockedIssue.key.split('-')[0], connectionId]
+			);
+        const projectDbId = pRow.rows[0]?.id || null;
+        
+        const issueRow = await pool.query(
+          'SELECT id, sprint_id, epic_id FROM issues WHERE jira_issue_key=$1 AND jira_connection_id=$2',
+          [blockedIssue.key, connectionId]
+        );
+        const issueDbId = issueRow.rows[0]?.id || null;
+        const epicDbId = issueRow.rows[0]?.epic_id || null;
+        
+        let teamDbId = null;
+        if (issueRow.rows[0]?.sprint_id) {
+          const spRow = await pool.query('SELECT team_id FROM sprints WHERE id=$1', [issueRow.rows[0].sprint_id]);
+          teamDbId = spRow.rows[0]?.team_id || null;
+        }
+        
+        const blockerTitle = `${blockedIssue.key} blocked by ${blockingIssue.key}`;
+        const blockerDesc = `${blockedIssue.fields?.summary || blockedIssue.key} is blocked by ${blockingIssue.fields?.summary || blockingIssue.key}`;
+        
+        await pool.query(
+          `INSERT INTO blockers (jira_connection_id, issue_id, team_id, epic_id, project_id,
+             jira_issue_key, title, description, status, blocked_since, auto_detected)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',NOW(),true)
+           ON CONFLICT (jira_issue_key, jira_connection_id)
+           DO UPDATE SET title = EXCLUDED.title, status = 'active', updated_at = NOW()`,
+          [connectionId, issueDbId, teamDbId, epicDbId, projectDbId, 
+           `LINK-${blockedIssue.key}-${blockingIssue.key}`,
+           blockerTitle, blockerDesc]
+        );
+        
+        blockersFromLinks++;
+        stats.blockers++;
+        console.log(`   📌 ${blockedIssue.key} is blocked by ${blockingIssue.key}`);
+        
+      } catch (err) {
+        console.error(`   ⚠️  Failed to process link blocker:`, err.message);
+		}
+	  }
+	}
   }
+
+  console.log(`   ✅ Found ${blockersFromLinks} blockers via issue links`);
+  console.log(`✅ Total blockers synced: ${stats.blockers}`);
 
   // ------------------------------------------------------------------
   // 11. DEPENDENCIES (epic-to-epic links)
