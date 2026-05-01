@@ -301,17 +301,64 @@ class JiraClient {
 	  }
 
 	  async getRisks() {
-		try {
-		  const res = await this.client.get('/search', {
-			params: {
-			  jql: `(labels IN (risk, risk-high, risk-medium, risk-low, RISK) OR issuetype = Risk OR summary ~ "RISK*" OR priority = Highest) AND resolution = Unresolved ORDER BY priority DESC`,
-			  maxResults: 100,
-			  fields: 'summary,description,priority,labels,status,created,project',
-			},
-		  });
-		  return res.data.issues || [];
-		} catch (e) { return []; }
-	  }
+  try {
+    console.log('🔍 Fetching risks from Jira Software API...');
+    
+    // Get all boards
+    const boardRes = await axios.get(`${this.jiraUrl}/rest/agile/1.0/board`, {
+      headers: { 
+        Authorization: this.authHeader,
+        Accept: 'application/json' 
+      },
+      params: { maxResults: 100 },
+      timeout: 30000
+    });
+    
+    if (!boardRes.data.values || boardRes.data.values.length === 0) {
+      console.log('⚠️  No boards found');
+      return [];
+    }
+    
+    const allRiskIssues = [];
+    
+    // Search across all boards for issues with risk labels
+    for (const board of boardRes.data.values) {
+      try {
+        const issuesRes = await axios.get(`${this.jiraUrl}/rest/agile/1.0/board/${board.id}/issue`, {
+          headers: { 
+            Authorization: this.authHeader,
+            Accept: 'application/json' 
+          },
+          params: {
+            jql: 'labels IN (risk, risk-high, risk-medium, risk-low, RISK) AND resolution = Unresolved',
+            maxResults: 1000,
+            fields: 'summary,description,priority,labels,status,created,project'
+          },
+          timeout: 30000
+        });
+        
+        if (issuesRes.data.issues?.length > 0) {
+          console.log(`   Found ${issuesRes.data.issues.length} risk issues from board: ${board.name}`);
+          allRiskIssues.push(...issuesRes.data.issues);
+        }
+      } catch (boardError) {
+        console.log(`   ⚠️  Error fetching from board ${board.name}: ${boardError.message}`);
+      }
+    }
+    
+    // Remove duplicates (in case issue appears on multiple boards)
+    const uniqueRisks = Array.from(
+      new Map(allRiskIssues.map(issue => [issue.key, issue])).values()
+    );
+    
+    console.log(`✅ Found ${uniqueRisks.length} total risk issues`);
+    return uniqueRisks;
+    
+  } catch (error) {
+    console.error('❌ Error fetching risks:', error.message);
+    return [];
+  }
+}
 
 	  async getBlockers() {
 		try {
@@ -1331,163 +1378,6 @@ app.get('/api/dashboard/timeline', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// ============================================================================
-// DIAGNOSTIC: Test Risk Fetching
-// Add this endpoint temporarily to test what's happening
-// ============================================================================
-
-app.get('/api/debug/jira-risks', authenticateToken, async (req, res) => {
-  try {
-    const conn = await getConnection(req.user.userId);
-    if (!conn) return res.status(404).json({ error: 'No connection' });
-    
-    const jira = new JiraClient(conn.jira_url, conn.jira_email, conn.jira_api_token);
-    
-    const results = {
-      jiraUrl: conn.jira_url,
-      tests: []
-    };
-    
-    // Test 1: Original getRisks() JQL
-    try {
-      const res = await jira.client.get('/search', {
-        params: {
-          jql: `(labels IN (risk, risk-high, risk-medium, risk-low, RISK) OR issuetype = Risk OR summary ~ "RISK*" OR priority = Highest) AND resolution = Unresolved ORDER BY priority DESC`,
-          maxResults: 100,
-          fields: 'summary,description,priority,labels,status,created,project'
-        }
-      });
-      results.tests.push({
-        name: 'Method 1: Original getRisks() JQL',
-        status: 'SUCCESS ✅',
-        count: res.data.total,
-        sample: res.data.issues?.[0]?.key
-      });
-    } catch (e) {
-      results.tests.push({
-        name: 'Method 1: Original getRisks() JQL',
-        status: 'FAILED ❌',
-        error: e.message,
-        statusCode: e.response?.status
-      });
-    }
-    
-    // Test 2: Simple risk label search
-    try {
-      const res = await jira.client.get('/search', {
-        params: {
-          jql: `labels = risk AND resolution = Unresolved`,
-          maxResults: 10,
-          fields: 'summary,labels,status,project'
-        }
-      });
-      results.tests.push({
-        name: 'Method 2: Simple "labels = risk"',
-        status: 'SUCCESS ✅',
-        count: res.data.total,
-        sample: res.data.issues?.[0]?.key
-      });
-    } catch (e) {
-      results.tests.push({
-        name: 'Method 2: Simple "labels = risk"',
-        status: 'FAILED ❌',
-        error: e.message,
-        statusCode: e.response?.status
-      });
-    }
-    
-    // Test 3: Check if you have ANY issues with risk labels
-    try {
-      const res = await jira.client.get('/search', {
-        params: {
-          jql: `labels IN (risk, risk-high, risk-medium, risk-low)`,
-          maxResults: 10,
-          fields: 'summary,labels,status,project'
-        }
-      });
-      results.tests.push({
-        name: 'Method 3: Check any issues with risk labels',
-        status: 'SUCCESS ✅',
-        count: res.data.total,
-        issues: res.data.issues?.map(i => ({
-          key: i.key,
-          summary: i.fields.summary,
-          labels: i.fields.labels,
-          status: i.fields.status.name
-        }))
-      });
-    } catch (e) {
-      results.tests.push({
-        name: 'Method 3: Check any issues with risk labels',
-        status: 'FAILED ❌',
-        error: e.message,
-        statusCode: e.response?.status
-      });
-    }
-    
-    // Test 4: Try getting issues via Jira Software API (like we did for epics/blockers)
-    try {
-      // Get all boards
-      const boardRes = await axios.get(`${conn.jira_url}/rest/agile/1.0/board`, {
-        headers: { 
-          Authorization: `Basic ${Buffer.from(`${conn.jira_email}:${decrypt(conn.jira_api_token)}`).toString('base64')}`,
-          Accept: 'application/json' 
-        },
-        params: { maxResults: 100 }
-      });
-      
-      if (boardRes.data.values?.length > 0) {
-        // Get issues from first board
-        const boardId = boardRes.data.values[0].id;
-        const issuesRes = await axios.get(`${conn.jira_url}/rest/agile/1.0/board/${boardId}/issue`, {
-          headers: { 
-            Authorization: `Basic ${Buffer.from(`${conn.jira_email}:${decrypt(conn.jira_api_token)}`).toString('base64')}`,
-            Accept: 'application/json' 
-          },
-          params: {
-            jql: 'labels IN (risk, risk-high, risk-medium, risk-low)',
-            maxResults: 10,
-            fields: 'summary,labels,status,priority'
-          }
-        });
-        
-        results.tests.push({
-          name: 'Method 4: Jira Software API with risk labels',
-          status: 'SUCCESS ✅',
-          boardName: boardRes.data.values[0].name,
-          count: issuesRes.data.total,
-          issues: issuesRes.data.issues?.map(i => ({
-            key: i.key,
-            summary: i.fields.summary,
-            labels: i.fields.labels
-          }))
-        });
-      }
-    } catch (e) {
-      results.tests.push({
-        name: 'Method 4: Jira Software API',
-        status: 'FAILED ❌',
-        error: e.message,
-        statusCode: e.response?.status
-      });
-    }
-    
-    res.json(results);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ============================================================================
-// HOW TO USE:
-// After adding this endpoint, deploy, then run in browser console:
-//
-// fetch('https://api.portavio.io/api/debug/jira-risks', {
-//   headers: { Authorization: `Bearer ${localStorage.getItem('pv_token')}` }
-// })
-// .then(r => r.json())
-// .then(data => console.log(JSON.stringify(data, null, 2)))
-// ============================================================================
 
 // ============================================================================
 // ROOT + ERROR HANDLING
