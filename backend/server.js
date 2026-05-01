@@ -1123,6 +1123,125 @@ app.get('/api/dashboard/timeline', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
+// Diagnostic endpoint - remove after debugging
+app.get('/api/debug/jira-epics/:projectKey', authenticateToken, async (req, res) => {
+  try {
+    const { projectKey } = req.params;
+    const conn = await getConnection(req.user.userId);
+    if (!conn) return res.status(404).json({ error: 'No connection' });
+    
+    const jira = new JiraClient(conn.jira_url, conn.jira_email, conn.jira_api_token);
+    const results = { jiraUrl: conn.jira_url, projectKey, tests: [] };
+    
+    // Test 1: Standard JQL with quotes
+    try {
+      const res1 = await jira.client.get('/search', {
+        params: {
+          jql: `project = "${projectKey}" AND issuetype = Epic`,
+          maxResults: 10,
+          fields: 'summary,status'
+        }
+      });
+      results.tests.push({
+        name: 'Method 1: project = "ADMN" AND issuetype = Epic',
+        status: 'SUCCESS ✅',
+        count: res1.data.total,
+        sample: res1.data.issues?.[0]?.key
+      });
+    } catch (e) {
+      results.tests.push({
+        name: 'Method 1: project = "ADMN" AND issuetype = Epic',
+        status: 'FAILED ❌',
+        error: e.message,
+        statusCode: e.response?.status
+      });
+    }
+    
+    // Test 2: JQL without quotes
+    try {
+      const res2 = await jira.client.get('/search', {
+        params: {
+          jql: `project = ${projectKey} AND issuetype = Epic`,
+          maxResults: 10,
+          fields: 'summary,status'
+        }
+      });
+      results.tests.push({
+        name: 'Method 2: project = ADMN AND issuetype = Epic (no quotes)',
+        status: 'SUCCESS ✅',
+        count: res2.data.total,
+        sample: res2.data.issues?.[0]?.key
+      });
+    } catch (e) {
+      results.tests.push({
+        name: 'Method 2: project = ADMN AND issuetype = Epic (no quotes)',
+        status: 'FAILED ❌',
+        error: e.message,
+        statusCode: e.response?.status
+      });
+    }
+    
+    // Test 3: Use "type" instead of "issuetype"
+    try {
+      const res3 = await jira.client.get('/search', {
+        params: {
+          jql: `project = ${projectKey} AND type = Epic`,
+          maxResults: 10,
+          fields: 'summary,status'
+        }
+      });
+      results.tests.push({
+        name: 'Method 3: project = ADMN AND type = Epic',
+        status: 'SUCCESS ✅',
+        count: res3.data.total,
+        sample: res3.data.issues?.[0]?.key
+      });
+    } catch (e) {
+      results.tests.push({
+        name: 'Method 3: project = ADMN AND type = Epic',
+        status: 'FAILED ❌',
+        error: e.message,
+        statusCode: e.response?.status
+      });
+    }
+    
+    // Test 4: Jira Software API
+    try {
+      const boardRes = await axios.get(`${conn.jira_url}/rest/agile/1.0/board`, {
+        headers: { Authorization: jira.authHeader },
+        params: { projectKeyOrId: projectKey }
+      });
+      
+      if (boardRes.data.values?.length > 0) {
+        const boardId = boardRes.data.values[0].id;
+        const epicRes = await axios.get(`${conn.jira_url}/rest/agile/1.0/board/${boardId}/epic`, {
+          headers: { Authorization: jira.authHeader },
+          params: { maxResults: 10 }
+        });
+        
+        results.tests.push({
+          name: 'Method 4: Jira Software API (Agile)',
+          status: 'SUCCESS ✅',
+          boardName: boardRes.data.values[0].name,
+          count: epicRes.data.values?.length || 0,
+          sample: epicRes.data.values?.[0]?.key
+        });
+      }
+    } catch (e) {
+      results.tests.push({
+        name: 'Method 4: Jira Software API (Agile)',
+        status: 'FAILED ❌',
+        error: e.message,
+        statusCode: e.response?.status
+      });
+    }
+    
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================================================
 // ROOT + ERROR HANDLING
 // ============================================================================
