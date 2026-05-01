@@ -574,21 +574,21 @@ async function syncJiraData(connection) {
       WHERE epic_id = $1 AND jira_connection_id = $2
     `, [epic.id, connectionId]);
     
-    const stats = issueStats.rows[0];
-    let progress = 0;
-    
-    // Calculate progress: prefer story points, fall back to issue count
-    if (stats.total_points && stats.total_points > 0) {
-      progress = Math.round((stats.completed_points / stats.total_points) * 100);
-    } else if (stats.total_issues && stats.total_issues > 0) {
-      progress = Math.round((stats.completed_issues / stats.total_issues) * 100);
-    }
-    
-    // Update epic with calculated progress
-    await pool.query(
-      'UPDATE epics SET progress = $1, total_story_points = $2, completed_story_points = $3 WHERE id = $4',
-      [progress, stats.total_points || 0, stats.completed_points || 0, epic.id]
-    );
+    const epicStats = issueStats.rows[0];  // ← Changed from 'stats' to 'epicStats'
+let progress = 0;
+
+// Calculate progress: prefer story points, fall back to issue count
+if (epicStats.total_points && epicStats.total_points > 0) {
+  progress = Math.round((epicStats.completed_points / epicStats.total_points) * 100);
+} else if (epicStats.total_issues && epicStats.total_issues > 0) {
+  progress = Math.round((epicStats.completed_issues / epicStats.total_issues) * 100);
+}
+
+// Update epic with calculated progress
+await pool.query(
+  'UPDATE epics SET progress = $1, total_story_points = $2, completed_story_points = $3 WHERE id = $4',
+  [progress, epicStats.total_points || 0, epicStats.completed_points || 0, epic.id]
+);
   }
 
   console.log(`✅ Calculated progress for ${allEpics.rows.length} epics`);
