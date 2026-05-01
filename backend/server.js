@@ -178,16 +178,21 @@ class JiraClient {
   }
 
   async getEpics(projectKey) {
-    try {
-      const res = await this.client.get('/search', {
-        params: {
-          jql: `project = ${projectKey} AND issuetype = Epic ORDER BY created DESC`,
-          maxResults: 1000,
-          fields: 'summary,status,created,updated,customfield_10016',
-        },
-      });
-      return res.data.issues || [];
-    } catch (e) { return []; }
+	try {
+		console.log(`🔍 Fetching epics for project: ${projectKey}`);
+		const res = await this.client.get('/search', {
+		params: {
+			jql: `project = ${projectKey} AND issuetype = Epic ORDER BY created DESC`,
+			maxResults: 1000,
+			fields: 'summary,status,created,updated,customfield_10016,duedate,labels,issuelinks',
+		},
+		});
+		console.log(`✅ Found ${res.data.issues?.length || 0} epics in ${projectKey}`);
+		return res.data.issues || [];
+	} catch (e) {
+		console.error(`❌ Error fetching epics for ${projectKey}:`, e.message);
+		return [];
+	}
   }
 
   async getEpicIssues(epicKey) {
@@ -273,25 +278,69 @@ async function syncJiraData(connection) {
   // ------------------------------------------------------------------
   console.log('🎯 Syncing epics...');
   for (const p of projects) {
-    const projectRow = await pool.query(
-      'SELECT id FROM projects WHERE jira_project_id=$1 AND jira_connection_id=$2',
-      [p.id, connectionId]
-    );
-    if (!projectRow.rows.length) continue;
-    const projectDbId = projectRow.rows[0].id;
+	const projectRow = await pool.query(
+		'SELECT id FROM projects WHERE jira_project_id=$1 AND jira_connection_id=$2',
+		[p.id, connectionId]
+	);
+	if (!projectRow.rows.length) {
+		console.log(`⚠️  Project ${p.key} not found in database, skipping epics`);
+		continue;
+	}
+	const projectDbId = projectRow.rows[0].id;
 
-    const epics = await jira.getEpics(p.key);
-    for (const e of epics) {
-      await pool.query(
-        `INSERT INTO epics (jira_connection_id, project_id, jira_epic_id, jira_epic_key, name, status)
-         VALUES ($1,$2,$3,$4,$5,$6)
-         ON CONFLICT (jira_connection_id, jira_epic_id)
-         DO UPDATE SET name=EXCLUDED.name, status=EXCLUDED.status, updated_at=NOW()`,
-        [connectionId, projectDbId, e.id, e.key, e.fields.summary, e.fields.status.name]
-      );
-      stats.epics++;
-    }
+	console.log(`📊 Syncing epics for project: ${p.key}`);
+	const epics = await jira.getEpics(p.key);
+	console.log(`   Found ${epics.length} epics in ${p.key}`);
+  
+	for (const e of epics) {
+		// Extract story points
+		const storyPoints = e.fields.customfield_10016 
+                     || e.fields.customfield_10028 
+                     || e.fields.story_points 
+                     || 0;
+
+		// Extract due date
+		const dueDate = e.fields.duedate ? new Date(e.fields.duedate) : null;
+		const startDate = e.fields.created ? new Date(e.fields.created) : null;
+
+		console.log(`   Inserting epic: ${e.key} - ${e.fields.summary}`);
+
+		await pool.query(
+      `		INSERT INTO epics (
+				jira_connection_id, 
+				project_id, 
+				jira_epic_id, 
+				jira_epic_key, 
+				name, 
+				status,
+				due_date,
+				start_date,
+				total_story_points,
+				progress
+			)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0)
+			ON CONFLICT (jira_connection_id, jira_epic_id)
+			DO UPDATE SET 
+			name=EXCLUDED.name, 
+			status=EXCLUDED.status, 
+			due_date=EXCLUDED.due_date,
+			updated_at=NOW()`,
+		[
+			connectionId, 
+			projectDbId, 
+			e.id, 
+			e.key, 
+			e.fields.summary, 
+			e.fields.status.name,
+			dueDate,
+			startDate,
+			storyPoints
+		]
+		);
+		stats.epics++;
+	}
   }
+  console.log(`✅ Synced ${stats.epics} epics total`);
 
   // ------------------------------------------------------------------
   // 3. TEAMS (boards) + SPRINTS
