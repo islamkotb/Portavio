@@ -1331,113 +1331,141 @@ app.get('/api/dashboard/timeline', authenticateToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// Diagnostic endpoint - remove after debugging
-app.get('/api/debug/jira-epics/:projectKey', authenticateToken, async (req, res) => {
+// ============================================================================
+// DIAGNOSTIC: Test Risk Fetching
+// Add this endpoint temporarily to test what's happening
+// ============================================================================
+
+app.get('/api/debug/jira-risks', authenticateToken, async (req, res) => {
   try {
-    const { projectKey } = req.params;
     const conn = await getConnection(req.user.userId);
     if (!conn) return res.status(404).json({ error: 'No connection' });
     
     const jira = new JiraClient(conn.jira_url, conn.jira_email, conn.jira_api_token);
-    const results = { jiraUrl: conn.jira_url, projectKey, tests: [] };
     
-    // Test 1: Standard JQL with quotes
+    const results = {
+      jiraUrl: conn.jira_url,
+      tests: []
+    };
+    
+    // Test 1: Original getRisks() JQL
     try {
-      const res1 = await jira.client.get('/search', {
+      const res = await jira.client.get('/search', {
         params: {
-          jql: `project = "${projectKey}" AND issuetype = Epic`,
-          maxResults: 10,
-          fields: 'summary,status'
+          jql: `(labels IN (risk, risk-high, risk-medium, risk-low, RISK) OR issuetype = Risk OR summary ~ "RISK*" OR priority = Highest) AND resolution = Unresolved ORDER BY priority DESC`,
+          maxResults: 100,
+          fields: 'summary,description,priority,labels,status,created,project'
         }
       });
       results.tests.push({
-        name: 'Method 1: project = "ADMN" AND issuetype = Epic',
+        name: 'Method 1: Original getRisks() JQL',
         status: 'SUCCESS ✅',
-        count: res1.data.total,
-        sample: res1.data.issues?.[0]?.key
+        count: res.data.total,
+        sample: res.data.issues?.[0]?.key
       });
     } catch (e) {
       results.tests.push({
-        name: 'Method 1: project = "ADMN" AND issuetype = Epic',
+        name: 'Method 1: Original getRisks() JQL',
         status: 'FAILED ❌',
         error: e.message,
         statusCode: e.response?.status
       });
     }
     
-    // Test 2: JQL without quotes
+    // Test 2: Simple risk label search
     try {
-      const res2 = await jira.client.get('/search', {
+      const res = await jira.client.get('/search', {
         params: {
-          jql: `project = ${projectKey} AND issuetype = Epic`,
+          jql: `labels = risk AND resolution = Unresolved`,
           maxResults: 10,
-          fields: 'summary,status'
+          fields: 'summary,labels,status,project'
         }
       });
       results.tests.push({
-        name: 'Method 2: project = ADMN AND issuetype = Epic (no quotes)',
+        name: 'Method 2: Simple "labels = risk"',
         status: 'SUCCESS ✅',
-        count: res2.data.total,
-        sample: res2.data.issues?.[0]?.key
+        count: res.data.total,
+        sample: res.data.issues?.[0]?.key
       });
     } catch (e) {
       results.tests.push({
-        name: 'Method 2: project = ADMN AND issuetype = Epic (no quotes)',
+        name: 'Method 2: Simple "labels = risk"',
         status: 'FAILED ❌',
         error: e.message,
         statusCode: e.response?.status
       });
     }
     
-    // Test 3: Use "type" instead of "issuetype"
+    // Test 3: Check if you have ANY issues with risk labels
     try {
-      const res3 = await jira.client.get('/search', {
+      const res = await jira.client.get('/search', {
         params: {
-          jql: `project = ${projectKey} AND type = Epic`,
+          jql: `labels IN (risk, risk-high, risk-medium, risk-low)`,
           maxResults: 10,
-          fields: 'summary,status'
+          fields: 'summary,labels,status,project'
         }
       });
       results.tests.push({
-        name: 'Method 3: project = ADMN AND type = Epic',
+        name: 'Method 3: Check any issues with risk labels',
         status: 'SUCCESS ✅',
-        count: res3.data.total,
-        sample: res3.data.issues?.[0]?.key
+        count: res.data.total,
+        issues: res.data.issues?.map(i => ({
+          key: i.key,
+          summary: i.fields.summary,
+          labels: i.fields.labels,
+          status: i.fields.status.name
+        }))
       });
     } catch (e) {
       results.tests.push({
-        name: 'Method 3: project = ADMN AND type = Epic',
+        name: 'Method 3: Check any issues with risk labels',
         status: 'FAILED ❌',
         error: e.message,
         statusCode: e.response?.status
       });
     }
     
-    // Test 4: Jira Software API
+    // Test 4: Try getting issues via Jira Software API (like we did for epics/blockers)
     try {
+      // Get all boards
       const boardRes = await axios.get(`${conn.jira_url}/rest/agile/1.0/board`, {
-        headers: { Authorization: jira.authHeader },
-        params: { projectKeyOrId: projectKey }
+        headers: { 
+          Authorization: `Basic ${Buffer.from(`${conn.jira_email}:${decrypt(conn.jira_api_token)}`).toString('base64')}`,
+          Accept: 'application/json' 
+        },
+        params: { maxResults: 100 }
       });
       
       if (boardRes.data.values?.length > 0) {
+        // Get issues from first board
         const boardId = boardRes.data.values[0].id;
-        const epicRes = await axios.get(`${conn.jira_url}/rest/agile/1.0/board/${boardId}/epic`, {
-          headers: { Authorization: jira.authHeader },
-          params: { maxResults: 10 }
+        const issuesRes = await axios.get(`${conn.jira_url}/rest/agile/1.0/board/${boardId}/issue`, {
+          headers: { 
+            Authorization: `Basic ${Buffer.from(`${conn.jira_email}:${decrypt(conn.jira_api_token)}`).toString('base64')}`,
+            Accept: 'application/json' 
+          },
+          params: {
+            jql: 'labels IN (risk, risk-high, risk-medium, risk-low)',
+            maxResults: 10,
+            fields: 'summary,labels,status,priority'
+          }
         });
         
         results.tests.push({
-          name: 'Method 4: Jira Software API (Agile)',
+          name: 'Method 4: Jira Software API with risk labels',
           status: 'SUCCESS ✅',
           boardName: boardRes.data.values[0].name,
-          count: epicRes.data.values?.length || 0,
-          sample: epicRes.data.values?.[0]?.key
+          count: issuesRes.data.total,
+          issues: issuesRes.data.issues?.map(i => ({
+            key: i.key,
+            summary: i.fields.summary,
+            labels: i.fields.labels
+          }))
         });
       }
     } catch (e) {
       results.tests.push({
-        name: 'Method 4: Jira Software API (Agile)',
+        name: 'Method 4: Jira Software API',
         status: 'FAILED ❌',
         error: e.message,
         statusCode: e.response?.status
@@ -1449,6 +1477,17 @@ app.get('/api/debug/jira-epics/:projectKey', authenticateToken, async (req, res)
     res.status(500).json({ error: error.message });
   }
 });
+
+// ============================================================================
+// HOW TO USE:
+// After adding this endpoint, deploy, then run in browser console:
+//
+// fetch('https://api.portavio.io/api/debug/jira-risks', {
+//   headers: { Authorization: `Bearer ${localStorage.getItem('pv_token')}` }
+// })
+// .then(r => r.json())
+// .then(data => console.log(JSON.stringify(data, null, 2)))
+// ============================================================================
 
 // ============================================================================
 // ROOT + ERROR HANDLING
