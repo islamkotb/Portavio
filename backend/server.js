@@ -562,37 +562,6 @@ async function syncJiraData(connection) {
   console.log(`✅ Synced ${stats.epics} epics total`);
   
 
-
-    // Step 2: Calculate progress for this epic
-    const issueStats = await pool.query(`
-      SELECT 
-        COUNT(*) as total_issues,
-        COUNT(CASE WHEN status IN ('Done', 'Closed') THEN 1 END) as completed_issues,
-        COALESCE(SUM(story_points), 0) as total_points,
-        COALESCE(SUM(CASE WHEN status IN ('Done', 'Closed') THEN story_points ELSE 0 END), 0) as completed_points
-      FROM issues
-      WHERE epic_id = $1 AND jira_connection_id = $2
-    `, [epic.id, connectionId]);
-    
-    const epicStats = issueStats.rows[0];  // ← Changed from 'stats' to 'epicStats'
-let progress = 0;
-
-// Calculate progress: prefer story points, fall back to issue count
-if (epicStats.total_points && epicStats.total_points > 0) {
-  progress = Math.round((epicStats.completed_points / epicStats.total_points) * 100);
-} else if (epicStats.total_issues && epicStats.total_issues > 0) {
-  progress = Math.round((epicStats.completed_issues / epicStats.total_issues) * 100);
-}
-
-// Update epic with calculated progress
-await pool.query(
-  'UPDATE epics SET progress = $1, total_story_points = $2, completed_story_points = $3 WHERE id = $4',
-  [progress, epicStats.total_points || 0, epicStats.completed_points || 0, epic.id]
-);
-  }
-
-  console.log(`✅ Calculated progress for ${allEpics.rows.length} epics`);
-
   // ------------------------------------------------------------------
   // 3. TEAMS (boards) + SPRINTS
   // ------------------------------------------------------------------
