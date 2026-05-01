@@ -140,7 +140,19 @@ class JiraClient {
     });
     return res.data.values || [];
   }
-
+  async getEpicDetails(epicKey) {
+	 try {
+		const res = await this.client.get(`/issue/${epicKey}`, {
+		  params: {
+			fields: 'summary,status,created,updated,duedate,labels,issuelinks,customfield_10016'
+		  }
+		});
+		return res.data;
+	  } catch (error) {
+		console.error(`⚠️  Could not fetch details for ${epicKey}:`, error.message);
+		return null;
+	 }
+  }
   async getSprints(boardId) {
     try {
       const res = await axios.get(`${this.jiraUrl}/rest/agile/1.0/board/${boardId}/sprint`, {
@@ -178,75 +190,142 @@ class JiraClient {
   }
 
   async getEpics(projectKey) {
-	try {
+	  try {
 		console.log(`🔍 Fetching epics for project: ${projectKey}`);
-		const res = await this.client.get('/search', {
-		params: {
-			jql: `project = ${projectKey} AND issuetype = Epic ORDER BY created DESC`,
-			maxResults: 1000,
-			fields: 'summary,status,created,updated,customfield_10016,duedate,labels,issuelinks',
-		},
+		
+		// Get boards for this project
+		const boardRes = await axios.get(`${this.jiraUrl}/rest/agile/1.0/board`, {
+		  headers: { 
+			Authorization: this.authHeader,
+			Accept: 'application/json' 
+		  },
+		  params: { 
+			projectKeyOrId: projectKey,
+			maxResults: 100
+		  },
+		  timeout: 30000
 		});
-		console.log(`✅ Found ${res.data.issues?.length || 0} epics in ${projectKey}`);
-		return res.data.issues || [];
-	} catch (e) {
-		console.error(`❌ Error fetching epics for ${projectKey}:`, e.message);
+		
+		if (!boardRes.data.values || boardRes.data.values.length === 0) {
+		  console.log(`⚠️  No boards found for project ${projectKey}`);
+		  return [];
+		}
+		
+		const boardId = boardRes.data.values[0].id;
+		const boardName = boardRes.data.values[0].name;
+		console.log(`   Found board: ${boardName} (ID: ${boardId})`);
+		
+		// Get epics from the board
+		const epicRes = await axios.get(`${this.jiraUrl}/rest/agile/1.0/board/${boardId}/epic`, {
+		  headers: { 
+			Authorization: this.authHeader,
+			Accept: 'application/json' 
+		  },
+		  params: {
+			maxResults: 1000
+		  },
+		  timeout: 30000
+		});
+		
+		const epics = epicRes.data.values || [];
+		console.log(`✅ Found ${epics.length} epics in ${projectKey}`);
+		
+		// Enrich each epic with full details
+		const enrichedEpics = await Promise.all(
+		  epics.map(async (epic) => {
+			const details = await this.getEpicDetails(epic.key);
+			
+			if (details) {
+			  return {
+				id: epic.id.toString(),
+				key: epic.key,
+				fields: details.fields
+			  };
+			} else {
+			  // Fallback to basic data if details fetch fails
+			  return {
+				id: epic.id.toString(),
+				key: epic.key,
+				fields: {
+				  summary: epic.summary || epic.name,
+				  status: { name: epic.done ? 'Done' : 'In Progress' },
+				  created: epic.created || new Date().toISOString(),
+				  updated: epic.updated || new Date().toISOString(),
+				  duedate: null,
+				  labels: [],
+				  issuelinks: [],
+				  customfield_10016: null
+				}
+			  };
+			}
+		  })
+		);
+		
+		console.log(`   Enriched ${enrichedEpics.length} epics with full details`);
+		return enrichedEpics;
+		
+	  } catch (error) {
+		console.error(`❌ Error fetching epics for ${projectKey}:`, error.message);
+		if (error.response) {
+		  console.error(`   Status: ${error.response.status}`);
+		  console.error(`   Data:`, error.response.data);
+		}
 		return [];
+	  }
 	}
-  }
 
-  async getEpicIssues(epicKey) {
-    try {
-      const res = await this.client.get('/search', {
-        params: {
-          jql: `"Epic Link" = ${epicKey} OR parent = ${epicKey}`,
-          maxResults: 1000,
-          fields: 'summary,status,issuetype,assignee,customfield_10016,sprint',
-        },
-      });
-      return res.data.issues || [];
-    } catch (e) { return []; }
-  }
+	  async getEpicIssues(epicKey) {
+		try {
+		  const res = await this.client.get('/search', {
+			params: {
+			  jql: `"Epic Link" = ${epicKey} OR parent = ${epicKey}`,
+			  maxResults: 1000,
+			  fields: 'summary,status,issuetype,assignee,customfield_10016,sprint',
+			},
+		  });
+		  return res.data.issues || [];
+		} catch (e) { return []; }
+	  }
 
-  async getRisks() {
-    try {
-      const res = await this.client.get('/search', {
-        params: {
-          jql: `(labels IN (risk, risk-high, risk-medium, risk-low, RISK) OR issuetype = Risk OR summary ~ "RISK*" OR priority = Highest) AND resolution = Unresolved ORDER BY priority DESC`,
-          maxResults: 100,
-          fields: 'summary,description,priority,labels,status,created,project',
-        },
-      });
-      return res.data.issues || [];
-    } catch (e) { return []; }
-  }
+	  async getRisks() {
+		try {
+		  const res = await this.client.get('/search', {
+			params: {
+			  jql: `(labels IN (risk, risk-high, risk-medium, risk-low, RISK) OR issuetype = Risk OR summary ~ "RISK*" OR priority = Highest) AND resolution = Unresolved ORDER BY priority DESC`,
+			  maxResults: 100,
+			  fields: 'summary,description,priority,labels,status,created,project',
+			},
+		  });
+		  return res.data.issues || [];
+		} catch (e) { return []; }
+	  }
 
-  async getBlockers() {
-    try {
-      const res = await this.client.get('/search', {
-        params: {
-          jql: `(status = Blocked OR labels IN (blocked, blocker, impediment, BLOCKED) OR flagged IS NOT EMPTY) AND resolution = Unresolved ORDER BY created DESC`,
-          maxResults: 100,
-          fields: 'summary,description,status,assignee,created,project,issuelinks,epic',
-        },
-      });
-      return res.data.issues || [];
-    } catch (e) { return []; }
-  }
+	  async getBlockers() {
+		try {
+		  const res = await this.client.get('/search', {
+			params: {
+			  jql: `(status = Blocked OR labels IN (blocked, blocker, impediment, BLOCKED) OR flagged IS NOT EMPTY) AND resolution = Unresolved ORDER BY created DESC`,
+			  maxResults: 100,
+			  fields: 'summary,description,status,assignee,created,project,issuelinks,epic',
+			},
+		  });
+		  return res.data.issues || [];
+		} catch (e) { return []; }
+	  }
 
-  async getEpicLinks(projectKey) {
-    try {
-      const res = await this.client.get('/search', {
-        params: {
-          jql: `project = ${projectKey} AND issuetype = Epic AND issuelinks is not EMPTY`,
-          maxResults: 500,
-          fields: 'summary,issuelinks,issuetype',
-        },
-      });
-      return res.data.issues || [];
-    } catch (e) { return []; }
+	  async getEpicLinks(projectKey) {
+		try {
+		  const res = await this.client.get('/search', {
+			params: {
+			  jql: `project = ${projectKey} AND issuetype = Epic AND issuelinks is not EMPTY`,
+			  maxResults: 500,
+			  fields: 'summary,issuelinks,issuetype',
+			},
+		  });
+		  return res.data.issues || [];
+		} catch (e) { return []; }
+	  }
   }
-}
 
 // ============================================================================
 // SYNC ORCHESTRATOR
