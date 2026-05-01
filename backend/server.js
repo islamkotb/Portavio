@@ -560,20 +560,21 @@ async function syncJiraData(connection) {
 	}
   }
   console.log(`✅ Synced ${stats.epics} epics total`);
+  
   // ------------------------------------------------------------------
-  // 2b. LINK ISSUES TO EPICS
+  // 2b. LINK ISSUES TO EPICS & CALCULATE PROGRESS
   // ------------------------------------------------------------------
-  console.log('🔗 Linking issues to epics...');
+  console.log('🔗 Linking issues to epics and calculating progress...');
   let linkedCount = 0;
 
   const allEpics = await pool.query(
-    'SELECT id, jira_epic_id FROM epics WHERE jira_connection_id = $1',
+    'SELECT id, jira_epic_id, jira_epic_key FROM epics WHERE jira_connection_id = $1',
     [connectionId]
   );
 
   for (const epic of allEpics.rows) {
     try {
-      // Get issues for this epic from Jira Software API
+      // Step 1: Get issues for this epic from Jira Software API and link them
       const epicIssues = await axios.get(
         `${jira.jiraUrl}/rest/agile/1.0/epic/${epic.jira_epic_id}/issue`,
         {
@@ -602,21 +603,8 @@ async function syncJiraData(connection) {
     } catch (err) {
       console.log(`   ⚠️  Could not get issues for epic ${epic.jira_epic_id}: ${err.message}`);
     }
-  }
 
-  console.log(`✅ Linked ${linkedCount} issues to epics`);
-  
-  // ------------------------------------------------------------------
-  // 2c. CALCULATE EPIC PROGRESS
-  // ------------------------------------------------------------------
-  console.log('📊 Calculating epic progress...');
-  const allEpics = await pool.query(
-    'SELECT id, jira_epic_key FROM epics WHERE jira_connection_id = $1',
-    [connectionId]
-  );
-  
-  for (const epic of allEpics.rows) {
-    // Get issues for this epic
+    // Step 2: Calculate progress for this epic
     const issueStats = await pool.query(`
       SELECT 
         COUNT(*) as total_issues,
@@ -643,6 +631,8 @@ async function syncJiraData(connection) {
       [progress, stats.total_points || 0, stats.completed_points || 0, epic.id]
     );
   }
+
+  console.log(`✅ Linked ${linkedCount} issues to epics`);
   console.log(`✅ Calculated progress for ${allEpics.rows.length} epics`);
 
 
