@@ -777,11 +777,17 @@ async function syncJiraData(connection) {
   }
 
   // ------------------------------------------------------------------
-  // 9. RISKS
-  // ------------------------------------------------------------------
-  console.log('⚠️  Syncing risks...');
-  const risks = await jira.getRisks();
-  for (const r of risks) {
+// 9. RISKS - Comprehensive detection
+// ------------------------------------------------------------------
+console.log('⚠️  Syncing risks...');
+
+// Method 1: Issues with risk labels (already working)
+console.log('   Method 1: Detecting risks via labels/status...');
+const riskIssues = await jira.getRisks();
+let risksFromLabels = 0;
+
+for (const r of riskIssues) {
+  try {
     const pRow = await pool.query(
       'SELECT id FROM projects WHERE jira_project_key=$1 AND jira_connection_id=$2',
       [r.fields.project.key, connectionId]
@@ -795,15 +801,305 @@ async function syncJiraData(connection) {
     else if (labels.includes('risk-low')) severity = 'low';
 
     await pool.query(
-      `INSERT INTO risks (jira_connection_id, project_id, jira_issue_key, title, description, severity, status, auto_detected)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
-       ON CONFLICT DO NOTHING`,
+      `INSERT INTO risks (jira_connection_id, project_id, jira_issue_key, title, description, severity, status, auto_detected, risk_type)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,false,'labeled_risk')
+       ON CONFLICT (jira_issue_key, jira_connection_id)
+       DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, severity=EXCLUDED.severity, status=EXCLUDED.status, updated_at=NOW()`,
       [connectionId, projectDbId, r.key, r.fields.summary, r.fields.description || '',
        severity, r.fields.status.name.toLowerCase().includes('done') ? 'closed' : 'open']
     );
+    risksFromLabels++;
     stats.risks++;
+  } catch (err) {
+    console.error(`   ⚠️  Failed to insert risk ${r.key}:`, err.message);
   }
+}
+console.log(`   ✅ Found ${risksFromLabels} risks via labels/status`);
 
+// Method 2: Auto-detect at-risk epics
+console.log('   Method 2: Auto-detecting at-risk epics...');
+let risksFromEpics = 0;
+
+const atRiskEpics = await pool.query(`
+  SELECT 
+    e.id as epic_id,
+    e.name,
+    e.jira_epic_key,
+    e.project_id,
+    e.progress,
+    e.due_date,
+    e.total_story_points,
+    e.completed_story_points,
+    p.name as project_name,
+    p.jira_project_key
+  FROM epics e
+  JOIN projects p ON e.project_id = p.id
+  WHERE e.jira_connection_id = $1
+    AND e.status NOT IN ('Done', 'Closed', 'Cancelled')
+    AND (
+      -- Less than 30% complete with due date within 7 days
+      (e.progress < 30 AND e.due_date IS NOT NULL AND e.due_date < NOW() + INTERVAL '7 days')
+      OR
+      -- Due date passed but not complete
+      (e.due_date IS NOT NULL AND e.due_date < NOW() AND e.progress < 100)
+      OR
+      -- No progress but has story points and due date
+      (e.progress = 0 AND e.total_story_points > 0 AND e.due_date IS NOT NULL)
+    )
+`, [connectionId]);
+
+for (const epic of atRiskEpics.rows) {
+  try {
+    let riskTitle = `Epic at risk: ${epic.name}`;
+    let riskDesc = '';
+    let severity = 'medium';
+
+    if (epic.due_date && epic.due_date < new Date()) {
+      const daysOverdue = Math.ceil((new Date() - new Date(epic.due_date)) / (1000 * 60 * 60 * 24));
+      riskDesc = `Epic is ${daysOverdue} days overdue. Progress: ${epic.progress}%`;
+      severity = 'high';
+    } else if (epic.progress < 30 && epic.due_date) {
+      const daysLeft = Math.ceil((new Date(epic.due_date) - new Date()) / (1000 * 60 * 60 * 24));
+      riskDesc = `Epic only ${epic.progress}% complete with ${daysLeft} days remaining`;
+      severity = daysLeft < 3 ? 'high' : 'medium';
+    } else {
+      riskDesc = `Epic has ${epic.total_story_points} story points but no progress`;
+      severity = 'low';
+    }
+
+    const syntheticKey = `EPIC-RISK-${epic.jira_epic_key}`;
+
+    await pool.query(
+      `INSERT INTO risks (jira_connection_id, project_id, jira_issue_key, title, description, severity, status, auto_detected, risk_type)
+       VALUES ($1,$2,$3,$4,$5,$6,'open',true,'epic_at_risk')
+       ON CONFLICT (jira_issue_key, jira_connection_id) 
+       DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, severity=EXCLUDED.severity, status='open', updated_at=NOW()`,
+      [connectionId, epic.project_id, syntheticKey, riskTitle, riskDesc, severity]
+    );
+    
+    risksFromEpics++;
+    stats.risks++;
+    console.log(`   📊 ${epic.jira_epic_key}: ${riskDesc}`);
+  } catch (err) {
+    console.error(`   ⚠️  Failed to insert epic risk:`, err.message);
+  }
+}
+console.log(`   ✅ Found ${risksFromEpics} at-risk epics`);
+
+// Method 3: Auto-detect overloaded teams
+console.log('   Method 3: Auto-detecting overloaded teams...');
+let risksFromTeams = 0;
+
+const overloadedTeams = await pool.query(`
+  SELECT 
+    t.id as team_id,
+    t.name as team_name,
+    t.velocity,
+    t.current_load,
+    t.capacity
+  FROM teams t
+  WHERE t.jira_connection_id = $1
+    AND t.current_load > 100
+`, [connectionId]);
+
+for (const team of overloadedTeams.rows) {
+  try {
+    const riskTitle = `Team overloaded: ${team.team_name}`;
+    const loadPercent = Math.round(team.current_load);
+    const riskDesc = `Team is at ${loadPercent}% capacity (velocity: ${team.velocity} points). Current workload exceeds team capacity.`;
+    const severity = loadPercent > 150 ? 'high' : 'medium';
+
+    const syntheticKey = `TEAM-OVERLOAD-${team.team_id}`;
+
+    await pool.query(
+      `INSERT INTO risks (jira_connection_id, project_id, jira_issue_key, title, description, severity, status, auto_detected, risk_type)
+       VALUES ($1,NULL,$2,$3,$4,$5,'open',true,'team_overload')
+       ON CONFLICT (jira_issue_key, jira_connection_id) 
+       DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, severity=EXCLUDED.severity, status='open', updated_at=NOW()`,
+      [connectionId, syntheticKey, riskTitle, riskDesc, severity]
+    );
+    
+    risksFromTeams++;
+    stats.risks++;
+    console.log(`   👥 ${team.team_name}: ${loadPercent}% capacity`);
+  } catch (err) {
+    console.error(`   ⚠️  Failed to insert team risk:`, err.message);
+  }
+}
+console.log(`   ✅ Found ${risksFromTeams} overloaded teams`);
+
+// Method 4: Auto-detect at-risk issues
+console.log('   Method 4: Auto-detecting at-risk issues...');
+let risksFromIssues = 0;
+
+const atRiskIssues = await pool.query(`
+  SELECT 
+    i.id as issue_id,
+    i.jira_issue_key,
+    i.summary,
+    i.status,
+    i.priority,
+    i.story_points,
+    i.assignee,
+    i.issue_type,
+    i.created_at,
+    i.updated_at,
+    i.sprint_id,
+    i.epic_id,
+    i.project_id,
+    s.end_date as sprint_end_date,
+    s.name as sprint_name
+  FROM issues i
+  LEFT JOIN sprints s ON i.sprint_id = s.id
+  WHERE i.jira_connection_id = $1
+    AND i.status NOT IN ('Done', 'Closed', 'Resolved')
+    AND (
+      -- High priority unassigned issues
+      (i.priority IN ('Highest', 'High', 'Critical') AND i.assignee IS NULL)
+      OR
+      -- Issues in progress for more than 7 days with no updates
+      (i.status = 'In Progress' AND i.updated_at < NOW() - INTERVAL '7 days')
+      OR
+      -- Large story points (>8) near sprint end with no progress
+      (i.story_points > 8 AND s.end_date IS NOT NULL AND s.end_date < NOW() + INTERVAL '3 days' AND i.status IN ('To Do', 'Backlog'))
+      OR
+      -- Critical bugs not assigned
+      (i.issue_type = 'Bug' AND i.priority IN ('Highest', 'Critical') AND i.assignee IS NULL)
+    )
+  LIMIT 50
+`, [connectionId]);
+
+for (const issue of atRiskIssues.rows) {
+  try {
+    let riskTitle = '';
+    let riskDesc = '';
+    let severity = 'medium';
+
+    if (issue.priority && ['Highest', 'High', 'Critical'].includes(issue.priority) && !issue.assignee) {
+      riskTitle = `Unassigned high priority: ${issue.jira_issue_key}`;
+      riskDesc = `${issue.priority} priority issue "${issue.summary}" is not assigned`;
+      severity = 'high';
+    } else if (issue.status === 'In Progress' && issue.updated_at < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) {
+      const daysStale = Math.ceil((new Date() - new Date(issue.updated_at)) / (1000 * 60 * 60 * 24));
+      riskTitle = `Stalled issue: ${issue.jira_issue_key}`;
+      riskDesc = `Issue "${issue.summary}" has been in progress for ${daysStale} days with no updates`;
+      severity = daysStale > 14 ? 'high' : 'medium';
+    } else if (issue.story_points > 8 && issue.sprint_end_date) {
+      const daysLeft = Math.ceil((new Date(issue.sprint_end_date) - new Date()) / (1000 * 60 * 60 * 24));
+      riskTitle = `Large story at risk: ${issue.jira_issue_key}`;
+      riskDesc = `${issue.story_points}-point story "${issue.summary}" not started with ${daysLeft} days left in sprint`;
+      severity = daysLeft < 2 ? 'high' : 'medium';
+    } else if (issue.issue_type === 'Bug' && issue.priority && ['Highest', 'Critical'].includes(issue.priority)) {
+      riskTitle = `Critical bug unassigned: ${issue.jira_issue_key}`;
+      riskDesc = `${issue.priority} bug "${issue.summary}" needs immediate attention`;
+      severity = 'high';
+    }
+
+    if (!riskTitle) continue;
+
+    const syntheticKey = `ISSUE-RISK-${issue.jira_issue_key}`;
+
+    await pool.query(
+      `INSERT INTO risks (jira_connection_id, project_id, jira_issue_key, title, description, severity, status, auto_detected, risk_type)
+       VALUES ($1,$2,$3,$4,$5,$6,'open',true,'issue_at_risk')
+       ON CONFLICT (jira_issue_key, jira_connection_id) 
+       DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, severity=EXCLUDED.severity, status='open', updated_at=NOW()`,
+      [connectionId, issue.project_id, syntheticKey, riskTitle, riskDesc, severity]
+    );
+    
+    risksFromIssues++;
+    stats.risks++;
+    console.log(`   🎫 ${issue.jira_issue_key}: ${riskTitle}`);
+  } catch (err) {
+    console.error(`   ⚠️  Failed to insert issue risk:`, err.message);
+  }
+}
+console.log(`   ✅ Found ${risksFromIssues} at-risk issues`);
+
+// Method 5: Auto-detect at-risk sprints
+console.log('   Method 5: Auto-detecting at-risk sprints...');
+let risksFromSprints = 0;
+
+const atRiskSprints = await pool.query(`
+  WITH sprint_progress AS (
+    SELECT 
+      s.id as sprint_id,
+      s.name as sprint_name,
+      s.start_date,
+      s.end_date,
+      s.team_id,
+      t.name as team_name,
+      COUNT(i.id) as total_issues,
+      COUNT(CASE WHEN i.status IN ('Done', 'Closed') THEN 1 END) as completed_issues,
+      SUM(i.story_points) as total_points,
+      SUM(CASE WHEN i.status IN ('Done', 'Closed') THEN i.story_points ELSE 0 END) as completed_points,
+      ROUND(
+        CASE 
+          WHEN COUNT(i.id) > 0 
+          THEN (COUNT(CASE WHEN i.status IN ('Done', 'Closed') THEN 1 END)::numeric / COUNT(i.id)::numeric * 100)
+          ELSE 0 
+        END, 
+        0
+      ) as completion_percent
+    FROM sprints s
+    LEFT JOIN teams t ON s.team_id = t.id
+    LEFT JOIN issues i ON i.sprint_id = s.id
+    WHERE s.jira_connection_id = $1
+      AND s.state = 'active'
+      AND s.end_date IS NOT NULL
+    GROUP BY s.id, s.name, s.start_date, s.end_date, s.team_id, t.name
+  )
+  SELECT *
+  FROM sprint_progress
+  WHERE 
+    -- Sprint ending soon with low completion
+    (end_date < NOW() + INTERVAL '3 days' AND completion_percent < 30)
+    OR
+    -- Sprint past end date but not complete
+    (end_date < NOW() AND completion_percent < 100)
+`, [connectionId]);
+
+for (const sprint of atRiskSprints.rows) {
+  try {
+    let riskTitle = '';
+    let riskDesc = '';
+    let severity = 'medium';
+
+    const daysLeft = Math.ceil((new Date(sprint.end_date) - new Date()) / (1000 * 60 * 60 * 24));
+
+    if (sprint.end_date < new Date()) {
+      const daysOverdue = Math.abs(daysLeft);
+      riskTitle = `Sprint overdue: ${sprint.sprint_name}`;
+      riskDesc = `Sprint is ${daysOverdue} days overdue with only ${sprint.completion_percent}% complete (${sprint.completed_issues}/${sprint.total_issues} issues)`;
+      severity = 'high';
+    } else if (daysLeft <= 3 && sprint.completion_percent < 30) {
+      riskTitle = `Sprint at risk: ${sprint.sprint_name}`;
+      riskDesc = `Only ${sprint.completion_percent}% complete with ${daysLeft} days remaining (${sprint.completed_issues}/${sprint.total_issues} issues done)`;
+      severity = daysLeft <= 1 ? 'high' : 'medium';
+    }
+
+    if (!riskTitle) continue;
+
+    const syntheticKey = `SPRINT-RISK-${sprint.sprint_id}`;
+
+    await pool.query(
+      `INSERT INTO risks (jira_connection_id, project_id, jira_issue_key, title, description, severity, status, auto_detected, risk_type)
+       VALUES ($1,NULL,$2,$3,$4,$5,'open',true,'sprint_at_risk')
+       ON CONFLICT (jira_issue_key, jira_connection_id) 
+       DO UPDATE SET title=EXCLUDED.title, description=EXCLUDED.description, severity=EXCLUDED.severity, status='open', updated_at=NOW()`,
+      [connectionId, syntheticKey, riskTitle, riskDesc, severity]
+    );
+    
+    risksFromSprints++;
+    stats.risks++;
+    console.log(`   🏃 ${sprint.sprint_name}: ${sprint.completion_percent}% complete with ${daysLeft} days left`);
+  } catch (err) {
+    console.error(`   ⚠️  Failed to insert sprint risk:`, err.message);
+  }
+}
+console.log(`   ✅ Found ${risksFromSprints} at-risk sprints`);
+
+console.log(`✅ Total risks synced: ${stats.risks} (${risksFromLabels} labeled + ${risksFromEpics} epic + ${risksFromTeams} team + ${risksFromIssues} issue + ${risksFromSprints} sprint)`);
   // ------------------------------------------------------------------
   // 10. BLOCKERS - Multiple detection methods
   // ------------------------------------------------------------------
