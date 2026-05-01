@@ -313,6 +313,23 @@ class JiraClient {
 		} catch (e) { return []; }
 	  }
 
+	  async getIssuesWithLinks(projectKey) {
+		  try {
+			console.log(`🔗 Fetching issues with links for project: ${projectKey}`);
+			const res = await this.client.get('/search', {
+			  params: {
+				jql: `project = ${projectKey} AND issuelinks is not EMPTY AND resolution = Unresolved`,
+				maxResults: 1000,
+				fields: 'summary,status,issuetype,issuelinks,project,created,assignee,epic,sprint'
+			  }
+			});
+			console.log(`   Found ${res.data.issues?.length || 0} issues with links`);
+			return res.data.issues || [];
+		  } catch (e) {
+			console.error(`Error fetching issues with links for ${projectKey}:`, e.message);
+			return [];
+		  }
+	  }
 	  async getEpicLinks(projectKey) {
 		try {
 		  const res = await this.client.get('/search', {
