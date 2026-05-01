@@ -561,56 +561,7 @@ async function syncJiraData(connection) {
   }
   console.log(`✅ Synced ${stats.epics} epics total`);
   
-  // ------------------------------------------------------------------
-  // 2b. LINK ISSUES TO EPICS & CALCULATE PROGRESS
-  // ------------------------------------------------------------------
-  console.log('🔗 Linking issues to epics and calculating progress...');
-  let linkedCount = 0;
 
-  const allEpics = await pool.query(
-    'SELECT id, jira_epic_id, jira_epic_key FROM epics WHERE jira_connection_id = $1',
-    [connectionId]
-  );
-
-  for (const epic of allEpics.rows) {
-    try {
-      // Get issues for this epic using JQL (parent field)
-      const epicIssues = await axios.get(
-        `${jira.jiraUrl}/rest/api/3/search`,
-        {
-          headers: { 
-            Authorization: jira.authHeader,
-            Accept: 'application/json' 
-          },
-          params: { 
-            jql: `parent = ${epic.jira_epic_key}`,
-            maxResults: 1000,
-            fields: 'key'
-          },
-          timeout: 30000
-        }
-      );
-
-      const issues = epicIssues.data.issues || [];
-      
-      for (const issue of issues) {
-        // Update issue with epic_id
-        const result = await pool.query(
-          `UPDATE issues 
-           SET epic_id = $1 
-           WHERE jira_issue_key = $2 AND jira_connection_id = $3`,
-          [epic.id, issue.key, connectionId]
-        );
-        if (result.rowCount > 0) linkedCount++;
-      }
-      
-      if (issues.length > 0) {
-        console.log(`   ✅ Linked ${issues.length} issues to ${epic.jira_epic_key}`);
-      }
-      
-    } catch (err) {
-      console.log(`   ⚠️  Could not get issues for ${epic.jira_epic_key}: ${err.message}`);
-    }
 
     // Step 2: Calculate progress for this epic
     const issueStats = await pool.query(`
@@ -640,7 +591,6 @@ async function syncJiraData(connection) {
     );
   }
 
-  console.log(`✅ Linked ${linkedCount} issues to epics`);
   console.log(`✅ Calculated progress for ${allEpics.rows.length} epics`);
 
   // ------------------------------------------------------------------
@@ -699,27 +649,32 @@ async function syncJiraData(connection) {
           [issueProjectKey, connectionId]
         );
         const projectDbId = pRow.rows[0]?.id || null;
-		// ====== ADD THIS DEBUG CODE HERE ======
-        // Debug: Log epic-related fields for first 5 issues
-        if (stats.issues < 5) {
-          console.log(`\n🔍 DEBUG Issue ${issue.key}:`);
-          console.log('  customfield_10014:', issue.fields.customfield_10014);
-          console.log('  customfield_10008:', issue.fields.customfield_10008);
-          console.log('  parent:', issue.fields.parent);
-          console.log('  epic:', issue.fields.epic);
-          console.log('  All custom fields:', Object.keys(issue.fields).filter(k => k.startsWith('customfield')));
-        }
-        // ====== END DEBUG CODE ======
-
-        // Resolve epic
+		
+        // Resolve epic - try parent field first (most reliable)
         let epicDbId = null;
-        const epicKey = issue.fields.customfield_10014 || issue.fields.epic?.key || null;
+        let epicKey = null;
+        
+        // Try parent field (Jira Cloud standard)
+        if (issue.fields.parent?.key) {
+          epicKey = issue.fields.parent.key;
+        } 
+        // Fallback to custom fields
+        else if (issue.fields.customfield_10014) {
+          epicKey = issue.fields.customfield_10014;
+        } else if (issue.fields.epic?.key) {
+          epicKey = issue.fields.epic.key;
+        }
+        
         if (epicKey) {
           const eRow = await pool.query(
             'SELECT id FROM epics WHERE jira_epic_key=$1 AND jira_connection_id=$2',
             [epicKey, connectionId]
           );
           epicDbId = eRow.rows[0]?.id || null;
+          
+          if (epicDbId && stats.issues < 10) {
+            console.log(`   ✅ Linked ${issue.key} to epic ${epicKey}`);
+          }
         }
 
         await pool.query(
