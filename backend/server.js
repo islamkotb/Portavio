@@ -392,17 +392,77 @@ class JiraClient {
 		  }
 	  }
 	  async getEpicLinks(projectKey) {
-		try {
-		  const res = await this.client.get('/search', {
-			params: {
-			  jql: `project = ${projectKey} AND issuetype = Epic AND issuelinks is not EMPTY`,
-			  maxResults: 500,
-			  fields: 'summary,issuelinks,issuetype',
-			},
-		  });
-		  return res.data.issues || [];
-		} catch (e) { return []; }
-	  }
+  try {
+    console.log(`🔗 Fetching epic links for project: ${projectKey}`);
+    
+    // Get epics with links using the same approach as getEpics
+    const boardRes = await axios.get(`${this.jiraUrl}/rest/agile/1.0/board`, {
+      headers: { 
+        Authorization: this.authHeader,
+        Accept: 'application/json' 
+      },
+      params: { 
+        projectKeyOrId: projectKey,
+        maxResults: 100
+      },
+      timeout: 30000
+    });
+    
+    if (!boardRes.data.values || boardRes.data.values.length === 0) {
+      console.log(`   ⚠️  No boards found for project ${projectKey}`);
+      return [];
+    }
+    
+    const boardId = boardRes.data.values[0].id;
+    
+    // Get epics from the board
+    const epicRes = await axios.get(`${this.jiraUrl}/rest/agile/1.0/board/${boardId}/epic`, {
+      headers: { 
+        Authorization: this.authHeader,
+        Accept: 'application/json' 
+      },
+      params: {
+        maxResults: 1000
+      },
+      timeout: 30000
+    });
+    
+    const epics = epicRes.data.values || [];
+    
+    if (epics.length === 0) {
+      console.log(`   No epics found in ${projectKey}`);
+      return [];
+    }
+    
+    // Now fetch full details for each epic to get issue links
+    const epicsWithLinks = [];
+    for (const epic of epics) {
+      try {
+        const details = await this.client.get(`/issue/${epic.key}`, {
+          params: {
+            fields: 'summary,issuelinks,issuetype'
+          }
+        });
+        
+        if (details.data.fields.issuelinks && details.data.fields.issuelinks.length > 0) {
+          epicsWithLinks.push({
+            key: epic.key,
+            fields: details.data.fields
+          });
+        }
+      } catch (e) {
+        console.log(`   ⚠️  Could not fetch links for ${epic.key}: ${e.message}`);
+      }
+    }
+    
+    console.log(`   ✅ Found ${epicsWithLinks.length} epics with links in ${projectKey}`);
+    return epicsWithLinks;
+    
+  } catch (error) {
+    console.error(`❌ Error fetching epic links for ${projectKey}:`, error.message);
+    return [];
+  }
+}
   }
 
 // ============================================================================
