@@ -548,13 +548,113 @@ async function loadRisks(){
 }
 
 // ── BLOCKERS ──
-async function loadBlockers(){
-  const el=document.getElementById('blockers-list');
+async function loadRisks(){
+  const el=document.getElementById('risks-list');
   try{
-    const d=await api('/api/dashboard/blockers');
-    el.innerHTML=d.blockers?.length?d.blockers.map(b=>`<div class="block-row"><div style="font-size:20px">🚫</div><div style="flex:1"><div style="font-size:14px;font-weight:500;margin-bottom:3px">${b.title}</div><div style="font-size:11px;color:var(--muted)">${[b.team_name&&'👥 '+b.team_name,b.epic_name&&'🎯 '+b.epic_name,b.project_name&&'📁 '+b.project_name,b.jira_issue_key].filter(Boolean).join(' · ')} · Since ${new Date(b.blocked_since).toLocaleDateString()}</div></div><span class="badge b-bad">Active</span></div>`).join(''):empty('✅','No active blockers','Label Jira issues "blocked" or set status to Blocked in your workflow');
-  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+    const d=await api('/api/dashboard/risks');
+    
+    if (!d.risks || d.risks.length === 0) {
+      el.innerHTML = empty('✅','No open risks','All risks are resolved or no risks detected');
+      return;
+    }
+    
+    // Group risks by type
+    const risksByType = {
+      'labeled_risk': [],
+      'epic_at_risk': [],
+      'team_overload': [],
+      'issue_at_risk': [],
+      'sprint_at_risk': []
+    };
+    
+    d.risks.forEach(r => {
+      const type = r.risk_type || 'labeled_risk';
+      if (risksByType[type]) {
+        risksByType[type].push(r);
+      } else {
+        risksByType['labeled_risk'].push(r);
+      }
+    });
+    
+    // Count totals
+    const totalRisks = d.risks.length;
+    const highCount = d.risks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
+    const mediumCount = d.risks.filter(r => r.severity === 'medium').length;
+    const lowCount = d.risks.filter(r => r.severity === 'low').length;
+    
+    // Risk type labels
+    const typeLabels = {
+      'labeled_risk': '🏷️ Labeled Risks',
+      'epic_at_risk': '📊 At-Risk Epics',
+      'team_overload': '👥 Overloaded Teams',
+      'issue_at_risk': '🎫 At-Risk Issues',
+      'sprint_at_risk': '🏃 At-Risk Sprints'
+    };
+    
+    // Build HTML
+    let html = `
+      <div style="margin-bottom:20px;padding:14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:24px;font-weight:700;color:#fff;margin-bottom:4px;">${totalRisks} Open Risks</div>
+            <div style="font-size:12px;color:var(--muted);">
+              <span class="badge b-bad">${highCount} High</span>
+              <span class="badge b-warn" style="margin-left:6px">${mediumCount} Medium</span>
+              ${lowCount > 0 ? `<span class="badge b-info" style="margin-left:6px">${lowCount} Low</span>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Render each risk type
+    Object.keys(risksByType).forEach(type => {
+      const risks = risksByType[type];
+      if (risks.length === 0) return;
+      
+      html += `
+        <div style="margin-bottom:24px;">
+          <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">
+            ${typeLabels[type]} (${risks.length})
+          </div>
+      `;
+      
+      risks.forEach(r => {
+        const severityBadge = r.severity === 'high' || r.severity === 'critical' ? 'b-bad' : 
+                             r.severity === 'medium' ? 'b-warn' : 'b-info';
+        
+        const projectInfo = r.project_name ? r.project_name : 'Portfolio-level';
+        const issueKey = r.jira_issue_key ? ` · ${r.jira_issue_key}` : '';
+        const date = r.identified_date ? ` · ${new Date(r.identified_date).toLocaleDateString()}` : 
+                     r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : '';
+        
+        html += `
+          <div class="risk-row">
+            <div style="font-size:20px">⚠️</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:500;margin-bottom:3px;">${r.title}</div>
+              <div style="font-size:11px;color:var(--muted);">
+                ${projectInfo}${issueKey}${date}
+                ${r.auto_detected ? ' · <span style="color:#8b5cf6">Auto-detected</span>' : ''}
+              </div>
+              ${r.description ? `<div style="font-size:12px;color:#94a3b8;margin-top:5px;">${r.description.substring(0,150)}${r.description.length > 150 ? '…' : ''}</div>` : ''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+              <span class="badge ${severityBadge}">${r.severity.toUpperCase()}</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `</div>`;
+    });
+    
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = empty('❌','Error loading risks',e.message);
+  }
 }
+
 
 // ── VELOCITY ──
 async function loadVelocity(){
