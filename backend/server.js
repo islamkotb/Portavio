@@ -597,92 +597,66 @@ async function syncJiraData(connection) {
       stats.sprints++;
 
       // ------------------------------------------------------------------
-      // 4. ISSUES (per sprint)
-      // ------------------------------------------------------------------
-      const sprintRow = await pool.query(
-        'SELECT id FROM sprints WHERE jira_sprint_id=$1 AND jira_connection_id=$2',
-        [s.id.toString(), connectionId]
+	// ------------------------------------------------------------------
+  // 4. LINK ISSUES TO EPICS VIA PARENT FIELD
+  // ------------------------------------------------------------------
+  console.log('🔗 Linking issues to epics via parent field...');
+  let linkedCount = 0;
+  
+  // Get all issues that need linking
+  const unlinkedIssues = await pool.query(
+    'SELECT id, jira_issue_key FROM issues WHERE epic_id IS NULL AND jira_connection_id = $1',
+    [connectionId]
+  );
+  
+  console.log(`   Found ${unlinkedIssues.rows.length} issues to check for epic links`);
+  
+  for (const issue of unlinkedIssues.rows) {
+    try {
+      // Fetch parent field from REST API v2 (Agile API doesn't return parent)
+      const issueDetail = await axios.get(
+        `${jira.jiraUrl}/rest/api/2/issue/${issue.jira_issue_key}`,
+        {
+          headers: { 
+            Authorization: jira.authHeader,
+            Accept: 'application/json' 
+          },
+          params: {
+            fields: 'parent'
+          },
+          timeout: 5000
+        }
       );
-      if (!sprintRow.rows.length) continue;
-      const sprintDbId = sprintRow.rows[0].id;
-
-      const sprintIssues = await jira.getSprintIssues(s.id);
-      for (const issue of sprintIssues) {
-        // Story points: try customfield_10016 (most common) or customfield_10028
-        const storyPoints = issue.fields.customfield_10016 || issue.fields.customfield_10028 || issue.fields.story_points || 0;
-
-        // Resolve project
-        const issueProjectKey = issue.key.split('-')[0];
-        const pRow = await pool.query(
-          'SELECT id FROM projects WHERE jira_project_key=$1 AND jira_connection_id=$2',
-          [issueProjectKey, connectionId]
+      
+      const epicKey = issueDetail.data.fields?.parent?.key;
+      
+      if (epicKey) {
+        // Find epic in database
+        const eRow = await pool.query(
+          'SELECT id FROM epics WHERE jira_epic_key=$1 AND jira_connection_id=$2',
+          [epicKey, connectionId]
         );
-        const projectDbId = pRow.rows[0]?.id || null;
-		
-        // Resolve epic - try parent field first (most reliable)
-        let epicDbId = null;
-        let epicKey = null;
         
-        // DEBUG: Log parent field for first 3 issues
-        if (stats.issues < 3) {
-          console.log(`\n🔍 Issue ${issue.key} parent field:`, JSON.stringify(issue.fields.parent, null, 2));
-          console.log(`   All fields:`, Object.keys(issue.fields));
-        }
-        
-        // Try parent field (Jira Cloud standard)
-        if (issue.fields.parent?.key) {
-          epicKey = issue.fields.parent.key;
-        } 
-        // Fallback to custom fields
-        else if (issue.fields.customfield_10014) {
-          epicKey = issue.fields.customfield_10014;
-        } else if (issue.fields.epic?.key) {
-          epicKey = issue.fields.epic.key;
-        }
-        
-        if (epicKey) {
-          const eRow = await pool.query(
-            'SELECT id FROM epics WHERE jira_epic_key=$1 AND jira_connection_id=$2',
-            [epicKey, connectionId]
+        if (eRow.rows.length > 0) {
+          // Link issue to epic
+          await pool.query(
+            'UPDATE issues SET epic_id = $1 WHERE id = $2',
+            [eRow.rows[0].id, issue.id]
           );
-          epicDbId = eRow.rows[0]?.id || null;
+          linkedCount++;
           
-          if (epicDbId && stats.issues < 10) {
-            console.log(`   ✅ Linked ${issue.key} to epic ${epicKey}`);
-          } else if (!epicDbId && epicKey) {
-            console.log(`   ⚠️ Epic ${epicKey} not found in database for issue ${issue.key}`);
+          // Log first 10 links
+          if (linkedCount <= 10) {
+            console.log(`   ✅ Linked ${issue.jira_issue_key} to epic ${epicKey}`);
           }
-        } else if (stats.issues < 3) {
-          console.log(`   ⚠️ No epic key found for ${issue.key}`);
         }
-
-        await pool.query(
-  `INSERT INTO issues (jira_connection_id, project_id, epic_id, sprint_id,
-     jira_issue_id, jira_issue_key, summary, issue_type, status, priority,
-     story_points, assignee, assignee_name, assignee_account_id)
-   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-   ON CONFLICT (jira_connection_id, jira_issue_id)
-   DO UPDATE SET 
-     status=EXCLUDED.status, 
-     sprint_id=EXCLUDED.sprint_id,
-     story_points=EXCLUDED.story_points, 
-     assignee=EXCLUDED.assignee,
-     assignee_name=EXCLUDED.assignee_name,
-     assignee_account_id=EXCLUDED.assignee_account_id,
-     updated_at=NOW()`,
-  [connectionId, projectDbId, epicDbId, sprintDbId,
-   issue.id, issue.key, issue.fields.summary,
-   issue.fields.issuetype.name, issue.fields.status.name,
-   issue.fields.priority?.name || null,
-   storyPoints,
-   issue.fields.assignee?.displayName || null,  // assignee
-   issue.fields.assignee?.displayName || null,  // assignee_name (backward compat)
-   issue.fields.assignee?.accountId || null]    // assignee_account_id
-);
-        stats.issues++;
       }
+    } catch (err) {
+      // Skip issues that fail (might not have parent or API error)
     }
   }
+  
+  console.log(`✅ Linked ${linkedCount} of ${unlinkedIssues.rows.length} issues to epics`);
 
   // ------------------------------------------------------------------
   // 4.1 CALCULATE EPIC PROGRESS (after issues are synced and linked)
