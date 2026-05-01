@@ -1729,20 +1729,46 @@ app.get('/api/dashboard/timeline', authenticateToken, async (req, res) => {
   try {
     const conn = await getConnection(req.user.userId);
     if (!conn) return res.status(404).json({ error: 'No active connection' });
-
+ 
+    // Get epics with dates for timeline
     const result = await pool.query(`
-      SELECT te.*, p.name AS project_name, e.name AS epic_name, t.name AS team_name
-      FROM timeline_events te
-      LEFT JOIN projects p ON te.project_id = p.id
-      LEFT JOIN epics e    ON te.epic_id    = e.id
-      LEFT JOIN teams t    ON te.team_id    = t.id
-      WHERE te.jira_connection_id = $1
-      ORDER BY te.event_date ASC
+      SELECT 
+        e.id,
+        e.jira_epic_key,
+        e.name,
+        e.status,
+        e.start_date,
+        e.due_date,
+        e.progress,
+        e.total_story_points,
+        e.completed_story_points,
+        p.name AS project_name,
+        p.jira_project_key,
+        p.id as project_id
+      FROM epics e
+      JOIN projects p ON e.project_id = p.id
+      WHERE e.jira_connection_id = $1
+        AND (e.start_date IS NOT NULL OR e.due_date IS NOT NULL)
+      ORDER BY 
+        COALESCE(e.start_date, e.due_date) ASC,
+        e.due_date ASC NULLS LAST
     `, [conn.id]);
-
-    res.json({ timeline: result.rows });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+ 
+    res.json({ 
+      epics: result.rows,
+      summary: {
+        total: result.rows.length,
+        with_due_date: result.rows.filter(e => e.due_date).length,
+        in_progress: result.rows.filter(e => e.status === 'In Progress').length,
+        completed: result.rows.filter(e => e.status === 'Done' || e.status === 'Closed').length
+      }
+    });
+  } catch (e) { 
+    console.error('Timeline error:', e);
+    res.status(500).json({ error: 'Server error' }); 
+  }
 });
+
 
 
 // ============================================================================
