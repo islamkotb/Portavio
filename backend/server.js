@@ -657,6 +657,17 @@ async function syncJiraData(connection) {
           [issueProjectKey, connectionId]
         );
         const projectDbId = pRow.rows[0]?.id || null;
+		// ====== ADD THIS DEBUG CODE HERE ======
+        // Debug: Log epic-related fields for first 5 issues
+        if (stats.issues < 5) {
+          console.log(`\n🔍 DEBUG Issue ${issue.key}:`);
+          console.log('  customfield_10014:', issue.fields.customfield_10014);
+          console.log('  customfield_10008:', issue.fields.customfield_10008);
+          console.log('  parent:', issue.fields.parent);
+          console.log('  epic:', issue.fields.epic);
+          console.log('  All custom fields:', Object.keys(issue.fields).filter(k => k.startsWith('customfield')));
+        }
+        // ====== END DEBUG CODE ======
 
         // Resolve epic
         let epicDbId = null;
