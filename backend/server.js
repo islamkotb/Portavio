@@ -1538,7 +1538,15 @@ app.post('/api/jira/disconnect', authenticateToken, async (req, res) => {
 app.get('/api/dashboard/overview', authenticateToken, async (req, res) => {
   try {
     const conn = await getConnection(req.user.userId);
-    if (!conn) return res.status(404).json({ error: 'No active connection' });
+	if (!conn) {
+	  return res.json({
+		projects: { total: 0, byHealth: [] },
+		teams: { total: 0 },
+		epics: { total: 0, byStatus: [] },
+		issues: { total: 0 },
+		avgVelocity: 0
+	  });
+	}
     const cid = conn.id;
 
     const [projects, teams, epics, issues, velocity] = await Promise.all([
@@ -1563,7 +1571,7 @@ app.get('/api/dashboard/overview', authenticateToken, async (req, res) => {
 app.get('/api/dashboard/teams', authenticateToken, async (req, res) => {
   try {
     const conn = await getConnection(req.user.userId);
-    if (!conn) return res.status(404).json({ error: 'No active connection' });
+    if (!conn) return res.json({ teams: [] });
 
     const teams = await pool.query('SELECT * FROM v_team_overview WHERE jira_connection_id=$1 ORDER BY team_name', [conn.id]);
 
@@ -1602,7 +1610,7 @@ app.get('/api/dashboard/teams', authenticateToken, async (req, res) => {
 app.get('/api/dashboard/projects', authenticateToken, async (req, res) => {
   try {
     const conn = await getConnection(req.user.userId);
-    if (!conn) return res.status(404).json({ error: 'No active connection' });
+    if (!conn) return res.json({ projects: [] });
 
     const projects = await pool.query('SELECT * FROM v_project_overview WHERE jira_connection_id=$1 ORDER BY project_name', [conn.id]);
 
@@ -1639,7 +1647,7 @@ app.get('/api/dashboard/projects', authenticateToken, async (req, res) => {
 app.get('/api/dashboard/epics', authenticateToken, async (req, res) => {
   try {
     const conn = await getConnection(req.user.userId);
-    if (!conn) return res.status(404).json({ error: 'No active connection' });
+    if (!conn) return res.json({ epics: [] });
 
     const epics = await pool.query('SELECT * FROM v_epic_overview WHERE jira_connection_id=$1 ORDER BY project_name, epic_name', [conn.id]);
 
