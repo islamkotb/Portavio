@@ -910,14 +910,14 @@ async function syncJiraData(connection) {
 
     // Calculate velocity history for completed and active sprints only (not future)
     const recentSprints = await pool.query(
-      `SELECT id, name, state, start_date, end_date 
-       FROM sprints 
-       WHERE team_id=$1 
-         AND start_date <= NOW()  -- Only past/current sprints
-       ORDER BY start_date DESC
-       LIMIT 7`,  -- Current + last 6
-      [teamId]
-    );
+	  `SELECT id, name, state, start_date, end_date 
+	   FROM sprints 
+	   WHERE team_id=$1 
+		 AND start_date <= NOW()
+	   ORDER BY start_date DESC
+	   LIMIT 7`,
+	  [teamId]
+	);
     
     for (const sprint of recentSprints.rows) {
       // Get issues for this sprint
