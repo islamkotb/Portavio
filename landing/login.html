@@ -295,57 +295,60 @@
         return data;
     }
 
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value.trim();
-        const password = document.getElementById('login-password').value;
+    // ============================================================================
+	// Pass token via URL to cross-domain app
+	// ============================================================================
+	 
+	
+	document.getElementById('login-form').addEventListener('submit', async (e) => {
+		e.preventDefault();
+		const email = document.getElementById('login-email').value.trim();
+		const password = document.getElementById('login-password').value;
+	 
+		if (!email || !password) {
+			showError('login', 'Email and password are required');
+			return;
+		}
+	 
+		try {
+			const data = await api('/api/auth/login', 'POST', { email, password });
+			
+			// Pass token via URL hash (works across domains)
+			window.location.href = `https://portavio-islamkotb-2775s-projects.vercel.app#token=${data.token}&user=${encodeURIComponent(data.user.name)}`;
+			
+		} catch (error) {
+			showError('login', error.message);
+		}
+	});
 
-        if (!email || !password) {
-            showError('login', 'Email and password are required');
-            return;
-        }
-
-        try {
-            const data = await api('/api/auth/login', 'POST', { email, password });
-            localStorage.setItem('pv_token', data.token);
-            localStorage.setItem('pv_user', data.user.name);
-            if (data.organizations && data.organizations.length > 0) {
-                localStorage.setItem('pv_current_org', data.organizations[0].slug);
-            }
-            window.location.href = 'https://portavio-islamkotb-2775s-projects.vercel.app';  // Redirect to app
-        } catch (error) {
-            showError('login', error.message);
-        }
-    });
-
+	// Pass token via URL to cross-domain app
     document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('register-name').value.trim();
-        const email = document.getElementById('register-email').value.trim();
-        const password = document.getElementById('register-password').value;
+		e.preventDefault();
+		const name = document.getElementById('register-name').value.trim();
+		const email = document.getElementById('register-email').value.trim();
+		const password = document.getElementById('register-password').value;
+	 
+		if (!name || !email || !password) {
+			showError('register', 'All fields are required');
+			return;
+		}
+	 
+		if (password.length < 8) {
+			showError('register', 'Password must be at least 8 characters');
+			return;
+		}
+	 
+		try {
+			const data = await api('/api/auth/register', 'POST', { name, email, password });
+			
+			// Pass token via URL hash
+			window.location.href = `https://portavio-islamkotb-2775s-projects.vercel.app#token=${data.token}&user=${encodeURIComponent(data.user.name)}`;
+			
+		} catch (error) {
+			showError('register', error.message);
+		}
+	});
 
-        if (!name || !email || !password) {
-            showError('register', 'All fields are required');
-            return;
-        }
-
-        if (password.length < 8) {
-            showError('register', 'Password must be at least 8 characters');
-            return;
-        }
-
-        try {
-            const data = await api('/api/auth/register', 'POST', { name, email, password });
-            localStorage.setItem('pv_token', data.token);
-            localStorage.setItem('pv_user', data.user.name);
-            if (data.organization) {
-                localStorage.setItem('pv_current_org', data.organization.slug);
-            }
-            window.location.href = 'https://portavio-islamkotb-2775s-projects.vercel.app';  // Redirect to app
-        } catch (error) {
-            showError('register', error.message);
-        }
-    });
 
     // Check for URL parameter to switch to register
     const urlParams = new URLSearchParams(window.location.search);

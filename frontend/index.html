@@ -359,6 +359,41 @@ const bar=(p,c='pb-brand')=>`<div class="pb-wrap"><div class="pb ${c}" style="wi
 const lc=l=>l>=90?'pb-red':l>=75?'pb-yellow':'pb-green';
 const empty=(i,t,m)=>`<div class="empty"><div class="ei">${i}</div><h3>${t}</h3><p>${m}</p></div>`;
 
+// Check for token in URL hash (from cross-domain login)
+(function checkUrlToken() {
+  if (window.location.hash) {
+    const params = new URLSearchParams(window.location.hash.substring(1));
+    const urlToken = params.get('token');
+    const urlUser = params.get('user');
+    
+    if (urlToken && urlUser) {
+      // Save to localStorage
+      localStorage.setItem('pv_token', urlToken);
+      localStorage.setItem('pv_user', urlUser);
+      
+      // Remove hash from URL
+      window.location.hash = '';
+      
+      // Set global variables
+      token = urlToken;
+      uname = urlUser;
+      
+      // Show app
+      showApp();
+      return;
+    }
+  }
+  
+  // Normal flow: check localStorage
+  token = localStorage.getItem('pv_token');
+  uname = localStorage.getItem('pv_user');
+  if (token && uname) {
+    showApp();
+  } else {
+    showAuth();
+  }
+})();
+
 async function api(path,method='GET',body=null){
   const h={'Content-Type':'application/json'};
   if(token)h['Authorization']=`Bearer ${token}`;
