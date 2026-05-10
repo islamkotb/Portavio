@@ -527,7 +527,7 @@ async function loadTeams(){
       ${bar(t.current_load,lc(t.current_load))}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:13px">
         <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px">Projects</div>${t.projects?.length?t.projects.map(p=>`<span class="tag ${p.is_primary?'tag-owner':''}">${p.is_primary?'★ ':''}${p.name}</span>`).join(''):'<span style="font-size:12px;color:#334155">None</span>'}</div>
-        <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px">Owned Epics</div>${t.epics?.filter(e=>e.is_owner).slice(0,3).map(e=>`<div style="font-size:12px;padding:3px 0;display:flex;justify-content:space-between"><span>${e.epic_name}</span><span style="color:var(--brand-light)">${e.progress||0}%</span></div>`).join('')||'<span style="font-size:12px;color:#334155">None</span>'}</div>
+        <div><div style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-bottom:7px">Owned Epics</div>${t.epics?.filter(e=>e.is_owner).slice(0,3).map(e=>`<div style="font-size:12px;padding:3px 0;display:flex;justify-content:space-between"><span>${e.name}</span><span style="color:var(--brand-light)">${e.progress||0}%</span></div>`).join('')||'<span style="font-size:12px;color:#334155">None</span>'}</div>
       </div>
       ${t.active_blockers>0?`<div style="margin-top:10px"><span class="badge b-bad">🚫 ${t.active_blockers} active blocker${t.active_blockers>1?'s':''}</span></div>`:''}
     </div>`).join('');
