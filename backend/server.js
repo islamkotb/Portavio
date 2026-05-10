@@ -590,7 +590,7 @@ async function syncJiraData(connection) {
         `INSERT INTO sprints (jira_connection_id, team_id, jira_sprint_id, name, state, start_date, end_date, goal)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
          ON CONFLICT (jira_connection_id, jira_sprint_id)
-         DO UPDATE SET name=EXCLUDED.name, state=EXCLUDED.state, updated_at=NOW()`,
+         DO UPDATE SET name=EXCLUDED.name, state=EXCLUDED.state, start_date=EXCLUDED.start_date, end_date=EXCLUDED.end_date, goal=EXCLUDED.goal, updated_at=NOW(),
         [connectionId, teamDbId, s.id.toString(), s.name, s.state,
          s.startDate || null, s.endDate || null, s.goal || '']
       );
