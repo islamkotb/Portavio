@@ -883,15 +883,156 @@ async function loadBlockers(){
 }
 
 // ── VELOCITY ──
+// ============================================================================
+// FIX: Velocity Graph - Last 6 Sprints Per Team with Sprint Names
+// Replace loadVelocity() function (lines 797-806) in index.html
+// ============================================================================
+ 
 async function loadVelocity(){
   try{
     const d=await api('/api/dashboard/velocity-history');
-    if(!d.velocityHistory?.length){document.querySelector('#page-velocity .card').innerHTML='<div class="card-title">📈 Team Velocity Trends</div>'+empty('📈','No velocity data','Complete sprints and sync to see trends');return;}
+    if(!d.velocityHistory?.length){
+      document.querySelector('#page-velocity .card').innerHTML='<div class="card-title">📈 Team Velocity Trends</div>'+empty('📈','No velocity data','Complete sprints and sync to see trends');
+      return;
+    }
+    
     const colors=['#5b6af0','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'];
-    const labels=[...new Set(d.velocityHistory.flatMap(t=>t.history.map(h=>h.sprint_name||'Sprint')))].slice(0,8);
-    if(vc)vc.destroy();
-    vc=new Chart(document.getElementById('vchart'),{type:'line',data:{labels,datasets:d.velocityHistory.map((t,i)=>({label:t.teamName,data:labels.map(l=>t.history.find(h=>h.sprint_name===l)?.velocity||null),borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+'18',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:colors[i%colors.length]}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:12}}}},scales:{x:{ticks:{color:'#4a5568'},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#4a5568'},grid:{color:'rgba(255,255,255,0.04)'},beginAtZero:true}}}});
-  }catch(e){console.error(e);}
+    
+    // Collect all unique sprint dates/names across all teams
+    const allSprints = new Map(); // date -> {name, date}
+    
+    d.velocityHistory.forEach(team => {
+      team.history.forEach(sprint => {
+        if (!allSprints.has(sprint.sprint_start_date)) {
+          allSprints.set(sprint.sprint_start_date, {
+            name: sprint.sprint_name || 'Sprint',
+            date: sprint.sprint_start_date
+          });
+        }
+      });
+    });
+    
+    // Sort by date and take last 6 unique sprints
+    const sortedSprints = Array.from(allSprints.values())
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(-6);
+    
+    // Create labels from sprint names
+    const labels = sortedSprints.map(s => s.name);
+    const sprintDates = sortedSprints.map(s => s.date);
+    
+    // Build datasets - match by date
+    const datasets = d.velocityHistory.map((team, i) => {
+      // For each team, get their velocity for each sprint date
+      const data = sprintDates.map(date => {
+        const sprint = team.history.find(h => h.sprint_start_date === date);
+        return sprint ? parseFloat(sprint.velocity) || 0 : null;
+      });
+      
+      return {
+        label: team.teamName,
+        data: data,
+        borderColor: colors[i % colors.length],
+        backgroundColor: colors[i % colors.length] + '18',
+        tension: 0.4,
+        fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: colors[i % colors.length],
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        spanGaps: true  // Connect lines even with null values
+      };
+    });
+    
+    if(vc) vc.destroy();
+    
+    vc = new Chart(document.getElementById('vchart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#94a3b8',
+              font: { size: 12, weight: '600' },
+              padding: 15,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#e2e8f0',
+            bodyColor: '#cbd5e1',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            padding: 12,
+            bodyFont: { size: 13 },
+            titleFont: { size: 14, weight: '600' },
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.y;
+                return value !== null 
+                  ? `${context.dataset.label}: ${value} story points`
+                  : `${context.dataset.label}: No data`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { 
+              color: '#94a3b8',
+              font: { size: 11 },
+              maxRotation: 45,
+              minRotation: 45
+            },
+            grid: { 
+              color: 'rgba(255,255,255,0.04)',
+              drawBorder: false
+            }
+          },
+          y: {
+            ticks: { 
+              color: '#94a3b8',
+              font: { size: 11 },
+              callback: function(value) {
+                return Math.round(value) + ' pts';
+              }
+            },
+            grid: { 
+              color: 'rgba(255,255,255,0.04)',
+              drawBorder: false
+            },
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Story Points Completed',
+              color: '#94a3b8',
+              font: { size: 12, weight: '600' }
+            }
+          }
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        }
+      }
+    });
+    
+  }catch(e){
+    console.error('Error loading velocity:', e);
+    document.querySelector('#page-velocity .card').innerHTML='<div class="card-title">📈 Team Velocity Trends</div>'+empty('⚠️','Error loading data','Could not load velocity trends');
 }
 
 // ── PREDICTABILITY ──
