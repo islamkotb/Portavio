@@ -314,7 +314,7 @@
 			const data = await api('/api/auth/login', 'POST', { email, password });
 			
 			// Pass token via URL hash (works across domains)
-			window.location.href = `https://portavio-islamkotb-2775s-projects.vercel.app#token=${data.token}&user=${encodeURIComponent(data.user.name)}`;
+			window.location.href = `https://app.portavio.io#token=${data.token}&user=${encodeURIComponent(data.user.name)}`;
 			
 		} catch (error) {
 			showError('login', error.message);
@@ -342,7 +342,7 @@
 			const data = await api('/api/auth/register', 'POST', { name, email, password });
 			
 			// Pass token via URL hash
-			window.location.href = `https://portavio-islamkotb-2775s-projects.vercel.app#token=${data.token}&user=${encodeURIComponent(data.user.name)}`;
+			window.location.href = `https://app.portavio.io#token=${data.token}&user=${encodeURIComponent(data.user.name)}`;
 			
 		} catch (error) {
 			showError('register', error.message);
