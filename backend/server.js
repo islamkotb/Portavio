@@ -908,16 +908,18 @@ async function syncJiraData(connection) {
       [velocity, load, velocity, predictability, teamId]
     );
 
-    // Calculate velocity history for ALL sprints (active and closed)
-    const allSprints = await pool.query(
+    // Calculate velocity history for completed and active sprints only (not future)
+    const recentSprints = await pool.query(
       `SELECT id, name, state, start_date, end_date 
        FROM sprints 
        WHERE team_id=$1 
-       ORDER BY start_date DESC`,
+         AND start_date <= NOW()  -- Only past/current sprints
+       ORDER BY start_date DESC
+       LIMIT 7`,  -- Current + last 6
       [teamId]
     );
     
-    for (const sprint of allSprints.rows) {
+    for (const sprint of recentSprints.rows) {
       // Get issues for this sprint
       const sprintIssues = await pool.query(
         `SELECT 
@@ -954,7 +956,6 @@ async function syncJiraData(connection) {
         );
       }
     }
-  }
 
   // ------------------------------------------------------------------
 // 9. RISKS - Comprehensive detection
