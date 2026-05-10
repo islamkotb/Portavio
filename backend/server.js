@@ -886,22 +886,31 @@ async function syncJiraData(connection) {
     const loadPts = parseInt(capResult.rows[0]?.load_pts || 0);
     const load = velocity > 0 ? Math.min(Math.round((loadPts / velocity) * 100), 200) : 0;
 
-    // Predictability = % of sprints where completed >= 80% of committed (last 6 sprints)
+	// Predictability = consistency of completed velocity (last 6 sprints)
+	// Measures how close each sprint's completed points are to the team's average
 	const predResult = await pool.query(`
-	  SELECT
-		COUNT(*) AS total,
-		COUNT(*) FILTER (WHERE completed_points >= committed_points * 0.8) AS on_target
-	  FROM (
-		SELECT completed_points, committed_points
+	  WITH recent_sprints AS (
+		SELECT completed_points
 		FROM velocity_history
 		WHERE team_id = $1
 		ORDER BY sprint_start_date DESC 
 		LIMIT 6
-	  ) sub
+	  ),
+	  avg_velocity AS (
+		SELECT AVG(completed_points) AS avg_completed
+		FROM recent_sprints
+	  )
+	  SELECT
+		COUNT(*) AS total,
+		COUNT(*) FILTER (
+		  WHERE completed_points >= (SELECT avg_completed FROM avg_velocity) * 0.8
+			AND completed_points <= (SELECT avg_completed FROM avg_velocity) * 1.2
+		) AS consistent_sprints
+	  FROM recent_sprints
 	`, [teamId]);
-	
-    const { total, on_target } = predResult.rows[0];
-    const predictability = total > 0 ? Math.round((on_target / total) * 100) : 0;
+
+	const { total, consistent_sprints } = predResult.rows[0];
+	const predictability = total > 0 ? Math.round((consistent_sprints / total) * 100) : 0;
 
     await pool.query(
       `UPDATE teams SET velocity=$1, current_load=$2, capacity=$3, predictability_score=$4, updated_at=NOW() WHERE id=$5`,
