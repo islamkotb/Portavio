@@ -956,6 +956,7 @@ async function syncJiraData(connection) {
         );
       }
     }
+  }
 
   // ------------------------------------------------------------------
 // 9. RISKS - Comprehensive detection
