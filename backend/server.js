@@ -908,27 +908,52 @@ async function syncJiraData(connection) {
       [velocity, load, velocity, predictability, teamId]
     );
 
-    // Upsert velocity_history for active sprint
-	const activeSprint = await pool.query(
-	  'SELECT id, start_date, end_date FROM sprints WHERE team_id=$1 AND state=$2 LIMIT 1',
-	  [teamId, 'active']
-	);
-	if (activeSprint.rows.length) {
-	  const sp = activeSprint.rows[0];
-	  
-	  // First, delete any existing entry to avoid GROUP BY issues
-	  await pool.query(
-		'DELETE FROM velocity_history WHERE team_id=$1 AND sprint_id=$2',
-		[teamId, sp.id]
-	  );
-	  
-	  // Then insert fresh data
-	  await pool.query(
-		`INSERT INTO velocity_history (team_id, sprint_id, committed_points, completed_points, velocity, sprint_start_date, sprint_end_date)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-		[teamId, sp.id, loadPts, 0, velocity, sp.start_date, sp.end_date]
-	  );
-	}
+    // Calculate velocity history for ALL sprints (active and closed)
+    const allSprints = await pool.query(
+      `SELECT id, name, state, start_date, end_date 
+       FROM sprints 
+       WHERE team_id=$1 
+       ORDER BY start_date DESC`,
+      [teamId]
+    );
+    
+    for (const sprint of allSprints.rows) {
+      // Get issues for this sprint
+      const sprintIssues = await pool.query(
+        `SELECT 
+          story_points,
+          status
+         FROM issues
+         WHERE sprint_id=$1 AND jira_connection_id=$2`,
+        [sprint.id, connectionId]
+      );
+      
+      // Calculate committed and completed points
+      const committed = sprintIssues.rows.reduce((sum, i) => sum + (parseFloat(i.story_points) || 0), 0);
+      const completed = sprintIssues.rows
+        .filter(i => i.status === 'Done' || i.status === 'Closed')
+        .reduce((sum, i) => sum + (parseFloat(i.story_points) || 0), 0);
+      
+      // Calculate velocity (completed points)
+      const sprintVelocity = completed;
+      
+      // Only store if sprint has data
+      if (sprintIssues.rows.length > 0) {
+        // Delete existing entry
+        await pool.query(
+          'DELETE FROM velocity_history WHERE team_id=$1 AND sprint_id=$2',
+          [teamId, sprint.id]
+        );
+        
+        // Insert fresh data
+        await pool.query(
+          `INSERT INTO velocity_history 
+           (team_id, sprint_id, committed_points, completed_points, velocity, sprint_start_date, sprint_end_date)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [teamId, sprint.id, committed, completed, sprintVelocity, sprint.start_date, sprint.end_date]
+        );
+      }
+    }
   }
 
   // ------------------------------------------------------------------
