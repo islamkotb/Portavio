@@ -910,6 +910,8 @@ async function syncJiraData(connection) {
 
     // Calculate velocity history for completed and active sprints only (not future)
     // Current sprint + last 6 completed sprints = 7 total
+	// Clear old velocity history for this team before recalculating
+	await pool.query('DELETE FROM velocity_history WHERE team_id=$1', [teamId]);
     const recentSprints = await pool.query(
       `SELECT id, name, state, start_date, end_date 
        FROM sprints 
