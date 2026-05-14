@@ -602,10 +602,15 @@
 		  .sidebar {
 			width: 200px;
 		  }
-		  
+
 		  .main-content {
 			margin-left: 200px;
 		  }
+		}
+
+		/* Must come after #mobile-menu-btn { display:none } base rule */
+		@media (orientation: landscape) and (max-height: 500px) {
+		  #mobile-menu-btn { display: block; }
 		}
 
 
