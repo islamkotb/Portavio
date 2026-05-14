@@ -45,6 +45,7 @@ app.use(helmet());
 
 const allowedOrigins = [
   'https://portavio-islamkotb-2775s-projects.vercel.app',
+  'https://portavio-in8f.vercel.app',
   'https://portavio.vercel.app',
   'https://api.portavio.io',
   'https://portavio-production.up.railway.app',
