@@ -1769,9 +1769,15 @@ app.get('/api/dashboard/risks', authenticateToken, async (req, res) => {
     if (!conn) return res.status(404).json({ error: 'No active connection' });
 
     const result = await pool.query(`
-      SELECT r.*, p.name AS project_name, p.jira_project_key
+      SELECT r.*, 
+             p.name AS project_name, 
+             p.jira_project_key,
+             t.name AS team_name
       FROM risks r
       LEFT JOIN projects p ON r.project_id = p.id
+      LEFT JOIN issues i ON r.jira_issue_key = i.jira_issue_key AND r.jira_connection_id = i.jira_connection_id
+      LEFT JOIN sprints s ON i.sprint_id = s.id
+      LEFT JOIN teams t ON s.team_id = t.id
       WHERE r.jira_connection_id = $1 AND r.status = 'open'
       ORDER BY CASE r.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END
     `, [conn.id]);
