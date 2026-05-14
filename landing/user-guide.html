@@ -640,40 +640,67 @@
 
             <p>Portavio uses specific labels to enhance risk detection and insights. Here are the recommended labels:</p>
 
-            <h3>Risk & Blocker Labels</h3>
+            <h3>Risk Labels</h3>
+            <p>Add one of these labels to any Jira issue to flag it as a manual risk:</p>
             <table>
                 <thead>
                     <tr>
                         <th>Label</th>
-                        <th>Purpose</th>
+                        <th>Severity</th>
                         <th>Portavio Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>blocked</code></td>
-                        <td>Issue cannot proceed</td>
-                        <td>⚠️ Surfaces in Risk Dashboard</td>
+                        <td><code>risk</code> or <code>RISK</code></td>
+                        <td>Medium</td>
+                        <td>⚠️ Appears in Risks → Labeled Risks tab</td>
                     </tr>
                     <tr>
-                        <td><code>blocker</code></td>
-                        <td>Critical blocker</td>
-                        <td>🚨 High priority alert</td>
+                        <td><code>risk-high</code></td>
+                        <td>High</td>
+                        <td>🚨 High severity in Labeled Risks tab</td>
                     </tr>
                     <tr>
-                        <td><code>at-risk</code></td>
-                        <td>Might not complete on time</td>
-                        <td>⚠️ Tracked for escalation</td>
+                        <td><code>risk-medium</code></td>
+                        <td>Medium</td>
+                        <td>⚠️ Medium severity in Labeled Risks tab</td>
                     </tr>
                     <tr>
-                        <td><code>dependency</code></td>
-                        <td>Depends on external team/work</td>
-                        <td>📊 Dependency mapping</td>
+                        <td><code>risk-low</code></td>
+                        <td>Low</td>
+                        <td>ℹ️ Low severity in Labeled Risks tab</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>You can also trigger a high-severity risk by setting the issue <strong>Priority</strong> to <strong>Highest</strong> or <strong>Critical</strong> — no label needed.</p>
+
+            <h3>Blocker Labels</h3>
+            <p>Any of these will create an entry in the Blockers page:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>What to do in Jira</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Status</td>
+                        <td>Set issue status to <strong>Blocked</strong></td>
                     </tr>
                     <tr>
-                        <td><code>tech-debt</code></td>
-                        <td>Technical debt item</td>
-                        <td>📈 Tech debt tracking</td>
+                        <td>Label</td>
+                        <td>Add label <code>blocked</code>, <code>blocker</code>, <code>impediment</code>, or <code>BLOCKED</code></td>
+                    </tr>
+                    <tr>
+                        <td>Flag</td>
+                        <td>Click the flag icon on the issue in Jira</td>
+                    </tr>
+                    <tr>
+                        <td>Issue link (auto)</td>
+                        <td>Link an issue as "is blocked by" another — detected automatically, no label needed</td>
                     </tr>
                 </tbody>
             </table>
@@ -797,16 +824,16 @@
             </ol>
 
             <h3>Sprint Commitment</h3>
-            <p>Portavio tracks committed vs. completed points:</p>
+            <p>Portavio tracks committed vs. completed points per sprint:</p>
             <ul>
-                <li><strong>Committed:</strong> Total story points at sprint start</li>
+                <li><strong>Committed:</strong> Total story points in the sprint at start</li>
                 <li><strong>Completed:</strong> Story points of "Done" issues at sprint end</li>
-                <li><strong>Predictability:</strong> Completed / Committed ratio</li>
+                <li><strong>Velocity:</strong> Average completed points across the last 6 sprints</li>
             </ul>
 
             <div class="info-box success">
                 <div class="info-box-title">✅ Good Predictability</div>
-                <p>Teams with 80%+ predictability consistently deliver what they commit to. Portavio highlights teams below this threshold.</p>
+                <p>Teams with 80%+ predictability have consistent velocity sprint-to-sprint (within ±20%). This makes capacity planning and roadmap commitments reliable. Portavio highlights teams below this threshold in red.</p>
             </div>
 
             <!-- Dashboard Overview -->
@@ -850,41 +877,47 @@
             <!-- Risk Detection -->
             <h2 id="risk-detection">🚨 Risk Detection</h2>
 
-            <p>Portavio automatically detects these risks:</p>
+            <p>Portavio detects risks in two ways: <strong>manual labels</strong> you apply in Jira, and <strong>automatic detection</strong> based on data patterns that runs on every sync. Risks are grouped into five types, each with its own tab on the Risks page.</p>
 
-            <h3>Blocker Detection</h3>
+            <p>You can filter risks by <strong>Project</strong> and <strong>Team</strong> using the dropdowns at the top of the Risks page.</p>
+
+            <h3>🏷️ Labeled Risks (Manual)</h3>
+            <p>Issues you explicitly label in Jira with <code>risk</code>, <code>risk-high</code>, <code>risk-medium</code>, <code>risk-low</code>, or <code>RISK</code>, or with priority set to <strong>Highest</strong> / <strong>Critical</strong>.</p>
+
+            <h3>📈 Epic Risks (Auto-detected)</h3>
+            <p>Portavio flags an epic as at-risk when any of the following are true:</p>
             <ul>
-                <li>Issues with <code>blocked</code> or <code>blocker</code> labels</li>
-                <li>Issues in "Blocked" status</li>
-                <li>Issues with links to blocking issues</li>
+                <li>The epic is past its due date (overdue)</li>
+                <li>Less than 50% complete with 7 or fewer days remaining until due date</li>
+                <li>Has story points estimated but 0% progress</li>
             </ul>
 
-            <h3>Epic at Risk</h3>
-            <p>Portavio flags epics as at-risk when:</p>
+            <h3>🏃 Sprint Risks (Auto-detected)</h3>
+            <p>Active sprints are flagged when:</p>
             <ul>
-                <li>Less than 30% complete with less than 30% time remaining</li>
-                <li>No progress in 2+ weeks</li>
-                <li>Multiple blocking issues</li>
-                <li>Assigned team is overloaded (>100% capacity)</li>
+                <li>The sprint end date has passed and completion is below 100%</li>
+                <li>Less than 50% of issues are done with 3 or fewer days remaining</li>
             </ul>
 
-            <h3>Team Overload</h3>
+            <h3>👥 Team Overload (Auto-detected)</h3>
+            <p>Raised when a team's current workload exceeds their average velocity:</p>
             <ul>
-                <li>Current sprint commitment > team's average velocity</li>
-                <li>Team assigned to too many simultaneous epics</li>
-                <li>Sprint contains too many critical bugs</li>
+                <li><strong>High severity</strong> — load exceeds 100% of velocity</li>
+                <li><strong>Medium severity</strong> — load exceeds 90% of velocity</li>
             </ul>
 
-            <h3>Velocity Drop</h3>
+            <h3>🎫 Issue Risks (Auto-detected)</h3>
+            <p>Individual issues are flagged as at-risk for any of these patterns:</p>
             <ul>
-                <li>Current sprint velocity < 70% of team average</li>
-                <li>Downward trend over 3+ sprints</li>
-                <li>Predictability score < 60%</li>
+                <li><strong>Unassigned high-priority</strong> — a Highest or Critical priority issue with no assignee</li>
+                <li><strong>Stalled</strong> — an issue that has been In Progress for more than 7 days with no updates</li>
+                <li><strong>Large story in a tight sprint</strong> — an 8+ point story in an active sprint with fewer than 3 days left, not yet started</li>
+                <li><strong>Unassigned critical bug</strong> — a Blocker or Critical priority bug with no assignee</li>
             </ul>
 
             <div class="info-box danger">
-                <div class="info-box-title">🚨 When Portavio Alerts You</div>
-                <p>Take action immediately on Critical risks. Review Medium risks within 1-2 days. Low risks are informational.</p>
+                <div class="info-box-title">🚨 Severity Guide</div>
+                <p>Take action immediately on <strong>High</strong> severity risks. Review <strong>Medium</strong> risks within 1–2 days. <strong>Low</strong> risks are informational.</p>
             </div>
 
             <!-- Velocity Tracking -->
@@ -911,15 +944,20 @@
             </ul>
 
             <h3>Predictability Score</h3>
-            <pre><code>Predictability = (Completed Points / Committed Points) × 100%</code></pre>
+            <p>Predictability measures how <strong>consistent</strong> a team's velocity is across recent sprints — not just whether they finish what they start.</p>
+            <pre><code>Predictability = (Consistent Sprints / Total Sprints) × 100%
+
+A sprint is "consistent" if its velocity is within ±20% of the team's average
+Portavio looks at the last 6 completed sprints</code></pre>
 
             <p>What scores mean:</p>
             <ul>
-                <li><strong>90-100%:</strong> Excellent - team delivers consistently</li>
-                <li><strong>80-89%:</strong> Good - minor variance is normal</li>
-                <li><strong>70-79%:</strong> Fair - review sprint planning process</li>
-                <li><strong><70%:</strong> Poor - team overcommitting or facing blockers</li>
+                <li><strong>80–100%</strong> <span style="color:#4ade80">●</span> Highly predictable — delivery is reliable and plannable</li>
+                <li><strong>60–79%</strong> <span style="color:#facc15">●</span> Moderately predictable — some variance, review sprint planning</li>
+                <li><strong>0–59%</strong> <span style="color:#f87171">●</span> Unpredictable — velocity swings significantly sprint to sprint</li>
             </ul>
+
+            <p>Predictability requires at least 2 completed sprints. Scores improve naturally as more sprint history accumulates.</p>
 
             <!-- Team Load -->
             <h2 id="team-load">⚖️ Team Load Management</h2>
@@ -1098,10 +1136,10 @@
             <p>Some features (velocity, predictability) require story points. You can still use Portavio for project tracking and risk detection.</p>
 
             <h3>How do I invite team members?</h3>
-            <p>Go to Settings → Team Members → Invite. They'll receive an email invitation.</p>
+            <p>Team member invitations are coming soon. The feature is being built — stay tuned for an update.</p>
 
             <h3>Can I export data?</h3>
-            <p>Yes! Go to Settings → Export Data to download CSV or JSON of your portfolio data.</p>
+            <p>Data export is on the roadmap and will be available in a future release.</p>
 
             <h3>Is my Jira data secure?</h3>
             <p>Yes. We use bank-level encryption, never share data with third parties, and are SOC 2 compliant.</p>
@@ -1117,7 +1155,7 @@
             </div>
 
             <p style="margin-top: 3rem; color: var(--muted); font-size: 0.9rem;">
-                Last updated: March 8, 2026 • <a href="/">Back to Dashboard</a>
+                Last updated: May 14, 2026 • <a href="/">Back to Dashboard</a>
             </p>
         </main>
     </div>
