@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const axios = require('axios');
-const CryptoJS = require('crypto-js');
+const crypto = require('crypto');
+const CryptoJS = require('crypto-js'); // kept for decrypting legacy tokens
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
@@ -41,15 +42,7 @@ pool.on('error', (err) => console.error('Database error:', err));
 // MIDDLEWARE
 // ============================================================================
 app.use(helmet());
-console.log('================================');
-console.log('🔍 CORS Configuration:');
-console.log('  CORS_ORIGIN:', process.env.CORS_ORIGIN);
-console.log('  Expected:', 'https://portavio-islamkotb-2775s-projects.vercel.app');
-console.log('  Match:', process.env.CORS_ORIGIN === 'https://portavio-islamkotb-2775s-projects.vercel.app');
-console.log('================================');
 
-//app.use(cors({ origin: process.env.CORS_ORIGIN || '*', credentials: true }));
-// CORS configuration with array of allowed origins
 const allowedOrigins = [
   'https://portavio-islamkotb-2775s-projects.vercel.app',
   'https://portavio.vercel.app',
@@ -62,11 +55,11 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null, true); // Temporarily allow all for debugging
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -81,8 +74,26 @@ app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 // ============================================================================
 // UTILITIES
 // ============================================================================
-const encrypt = (text) => CryptoJS.AES.encrypt(text, process.env.ENCRYPTION_KEY).toString();
-const decrypt = (text) => CryptoJS.AES.decrypt(text, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+const _encKey = () => crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY).digest();
+
+const encrypt = (text) => {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', _encKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v2:${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`;
+};
+
+const decrypt = (text) => {
+  if (!text.startsWith('v2:')) {
+    // Legacy CryptoJS-encrypted tokens
+    return CryptoJS.AES.decrypt(text, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+  }
+  const [, ivHex, tagHex, encHex] = text.split(':');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', _encKey(), Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+  return Buffer.concat([decipher.update(Buffer.from(encHex, 'hex')), decipher.final()]).toString('utf8');
+};
 const generateToken = (userId, email) =>
   jwt.sign({ userId, email }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 
