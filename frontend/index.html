@@ -968,13 +968,13 @@ function renderRisksWithTabs(){
     
     // Group risks by type
       const risksByType = {
-		'all': filtered,
-		'issue_at_risk': filtered.filter(r => r.risk_type === 'issue_at_risk'),
-		'labeled_risk': filtered.filter(r => r.risk_type === 'labeled_risk'),
-		'sprint_at_risk': filtered.filter(r => r.risk_type === 'sprint_at_risk'),
-		'epic_at_risk': filtered.filter(r => r.risk_type === 'epic_at_risk'),
-		'team_overload': filtered.filter(r => r.risk_type === 'team_overload')
-	  };
+    'all': filtered,
+    'issue_at_risk': filtered.filter(r => r.risk_type === 'issue_at_risk'),
+    'labeled_risk': filtered.filter(r => r.risk_type === 'labeled_risk'),
+    'sprint_at_risk': filtered.filter(r => r.risk_type === 'sprint_at_risk'),
+    'epic_at_risk': filtered.filter(r => r.risk_type === 'epic_at_risk'),
+    'team_overload': filtered.filter(r => r.risk_type === 'team_overload')
+  };
     
     d.risks.forEach(r => {
       const type = r.risk_type || 'labeled_risk';
@@ -982,7 +982,7 @@ function renderRisksWithTabs(){
         risksByType[type].push(r);
       }
     });
-    
+  
     // Count totals
     const totalRisks = d.risks.length;
     const highCount = d.risks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
@@ -998,7 +998,6 @@ function renderRisksWithTabs(){
       'epic_at_risk': { label: 'Epic Risks', icon: '📈' },
       'team_overload': { label: 'Team Overload', icon: '👥' }
     };
-}
     
     // Build header with total
     let html = `
@@ -1117,7 +1116,7 @@ function renderRisksWithTabs(){
     console.error(e);
     el.innerHTML = empty('⚠️','Error loading risks','Could not load risk data');
   }
-}
+
 
 
 // ── BLOCKERS ──
