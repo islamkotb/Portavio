@@ -5,16 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portavio — Portfolio Intelligence for Engineering Teams</title>
     <meta name="description" content="Portavio gives engineering leaders real-time visibility across their Jira portfolio. Track risks, blockers, team velocity, and epic dependencies in one place.">
-	<!-- In the header, add a home/logout link -->
-	<div class="header">
-	  <a href="https://portavio-landing-xxx.vercel.app" class="logo-link">
-		<!-- Logo -->
-	  </a>
-	  <!-- ... other header content ... -->
-	  <div class="user-menu">
-		<button onclick="logout()">Logout</button>
-	  </div>
-	</div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -95,7 +85,7 @@
             background:var(--bg2); border-right:1px solid var(--border);
             padding:0; z-index:100; overflow-y:auto; display:flex; flex-direction:column;
         }
-        .sidebar-header { padding:22px 20px; border-bottom:1px solid var(--border); }
+        .sidebar-header { padding:22px 20px; border-bottom:1px solid var(--border); display: flex; justify-content: space-between; align-items: center;}
         .sidebar-footer { margin-top:auto; padding:16px 20px; border-top:1px solid var(--border); }
         .sidebar-user { font-size:12px; color:var(--muted); }
         .sidebar-user strong { display:block; color:var(--text); font-size:13px; margin-bottom:2px; }
@@ -159,14 +149,14 @@
 
         /* ── PROGRESS ── */
         .pb-wrap { background:rgba(255,255,255,0.08); border-radius:8px; height:12px; overflow:hidden; margin-top:8px; }
-        .pb { height:100%; border-radius:8px; transition:width .4s; box-shadow:0 0 8px rgba(91,106,240,0.3);uj }
+        .pb { height:100%; border-radius:8px; transition:width .4s; box-shadow:0 0 8px rgba(91,106,240,0.3);}
         .pb-brand  { background:linear-gradient(90deg,var(--brand),var(--brand-light)); }
         .pb-green  { background:linear-gradient(90deg,#16a34a,#4ade80); }
         .pb-yellow { background:linear-gradient(90deg,#d97706,#facc15); }
         .pb-red    { background:linear-gradient(90deg,#dc2626,#f87171); }
-		// ============================================================================
-		// 1. ADD FILTER STYLES (add to <style> section around line 166)
-		// ============================================================================
+		/* ============================================================================
+		  1. ADD FILTER STYLES 
+		 ============================================================================ */
 
 		.filter-bar {
 		  display: flex;
@@ -258,8 +248,335 @@
         ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:#1e2a40; border-radius:10px; }
 
         @media(max-width:1100px){ .grid-4{grid-template-columns:repeat(2,1fr);} }
-        @media(max-width:768px) { .sidebar{display:none;} .main-content{margin-left:0;padding:20px;} .grid-4,.grid-2{grid-template-columns:1fr;} .auth-wrap{flex-direction:column;width:95%;} .auth-left{display:none;} .auth-right{width:100%;} }
-    </style>
+        @media(max-width:768px) { .sidebar{display:flex;} .main-content{margin-left:0;padding:20px;} .grid-4,.grid-2{grid-template-columns:1fr;} .auth-wrap{flex-direction:column;width:95%;} .auth-left{display:none;} .auth-right{width:100%;} }
+		/* ============================================================================
+		   MOBILE RESPONSIVE CSS FOR PORTAVIO
+		   
+		   ============================================================================ */
+
+		
+
+		  
+		  /* ========== UTILITY ========== */
+		  
+		  /* Hide text on very small screens */
+		  @media (max-width: 480px) {
+			.conn-badge {
+			  font-size: 12px;
+			}
+			
+			.header h1 {
+			  font-size: 20px;
+			}
+			
+			.nav-item {
+			  padding: 6px 12px;
+			  font-size: 12px;
+			}
+		  }
+		  
+		  /* ========== LANDSCAPE ORIENTATION ========== */
+		  
+		  @media (orientation: landscape) and (max-height: 500px) {
+			.sidebar {
+			  position: relative;
+			}
+			
+			.main {
+			  padding: 12px;
+			}
+		  }
+		
+
+		/* ============================================================================
+		   TABLET BREAKPOINT (768px - 1024px)
+		   ============================================================================ */
+
+		@media (min-width: 769px) and (max-width: 1024px) {
+		  
+		  .sidebar {
+			width: 200px;
+		  }
+		  
+		  .main {
+			margin-left: 200px;
+		  }
+		  
+		  /* 2-column grids on tablet */
+		  .stats-grid,
+		  #ov-stats {
+			grid-template-columns: repeat(2, 1fr) !important;
+		  }
+		  
+		  #ov-projects,
+		  #ov-teams {
+			grid-template-columns: 1fr !important;
+		  }
+		  
+		  .chart-wrap {
+			height: 300px;
+		  }
+		}
+
+		/* ============================================================================
+		   TOUCH DEVICE IMPROVEMENTS
+		   ============================================================================ */
+
+		@media (hover: none) and (pointer: coarse) {
+		  
+		  /* Larger tap targets */
+		  .nav-item,
+		  .btn,
+		  .filter-select,
+		  button {
+			min-height: 44px; /* iOS recommended tap target */
+		  }
+		  
+		  /* Remove hover effects on touch devices */
+		  .nav-item:hover,
+		  .btn:hover,
+		  .data-row:hover {
+			transform: none;
+		  }
+		  
+		  /* Better touch scrolling */
+		  nav,
+		  .main,
+		  #timeline-container {
+			-webkit-overflow-scrolling: touch;
+		  }
+		}
+
+		/* ============================================================================
+		   DARK MODE ADJUSTMENTS (if user prefers)
+		   ============================================================================ */
+
+		@media (prefers-color-scheme: dark) {
+		  /* Already dark by default, but you can add overrides here if needed */
+		}
+
+		/* ============================================================================
+		   PRINT STYLES (bonus)
+		   ============================================================================ */
+
+		@media print {
+		  .sidebar,
+		  .header-actions,
+		  .filter-bar {
+			display: none;
+		  }
+		  
+		  .main {
+			margin-left: 0;
+			width: 100%;
+		  }
+		  
+		  .card {
+			break-inside: avoid;
+		  }
+		}
+		
+		
+		/* ========== 1. MOBILE MENU BUTTON (Desktop: hidden, Mobile: visible) ========== */
+		#mobile-menu-btn {
+		  display: none;
+		  position: absolute;
+		  right: 16px;
+		  top: 50%;
+		  transform: translateY(-50%);
+		  font-size: 28px;
+		  background: none;
+		  border: none;
+		  color: #e2e8f0;
+		  cursor: pointer;
+		  padding: 8px;
+		  z-index: 10;
+		}
+
+		/* ========== 2. MOBILE RESPONSIVE STYLES ========== */
+		@media (max-width: 768px) {
+		  
+		  /* Show hamburger button */
+		  #mobile-menu-btn {
+			display: block;
+		  }
+		  
+		  /* Transform sidebar into mobile header */
+		  .sidebar {
+			display: flex;
+			flex-direction: column;
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			width: 100%;
+			height: 60px;
+			z-index: 1000;
+			border-right: none;
+			border-bottom: 1px solid rgba(255,255,255,0.08);
+			overflow: hidden;
+		  }
+		  
+		  .sidebar-header {
+			position: relative;
+			padding: 16px;
+			border-bottom: none;
+		  }
+		  
+		  .portavio-logo {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		  }
+		  
+		  /* Hide navigation by default */
+		  .nav-section,
+		  .nav-item,
+		  .sidebar-footer {
+			display: none;
+		  }
+		  
+		  /* Show navigation when menu is open */
+		  .sidebar.menu-open {
+			height: 100vh;
+			overflow-y: auto;
+		  }
+		  
+		  .sidebar.menu-open .nav-section {
+			display: block;
+		  }
+		  
+		  .sidebar.menu-open .nav-item {
+			display: flex;
+		  }
+		  
+		  .sidebar.menu-open .sidebar-footer {
+			display: block;
+		  }
+		  
+		  /* Main content area */
+		  .main-content {
+			margin-left: 0;
+			margin-top: 60px;
+			padding: 16px;
+			width: 100%;
+		  }
+		  
+		  /* Topbar adjustments */
+		  .topbar {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 12px;
+		  }
+		  
+		  .topbar-left h1 {
+			font-size: 20px;
+		  }
+		  
+		  .topbar-actions {
+			width: 100%;
+			flex-direction: column;
+			gap: 8px;
+		  }
+		  
+		  .conn-badge,
+		  .btn-sync,
+		  .btn-outline {
+			width: 100%;
+			justify-content: center;
+			text-align: center;
+		  }
+		  
+		  /* Cards */
+		  .card {
+			padding: 16px;
+			margin-bottom: 16px;
+		  }
+		  
+		  .card-title {
+			font-size: 16px;
+		  }
+		  
+		  /* Grids to single column */
+		  .stats-grid,
+		  [style*="display:grid"] {
+			grid-template-columns: 1fr !important;
+		  }
+		  
+		  /* Connect panel */
+		  .connect-panel {
+			padding: 16px;
+		  }
+		  
+		  .connect-form {
+			flex-direction: column;
+		  }
+		  
+		  .connect-form .fg {
+			width: 100%;
+			min-width: 100%;
+		  }
+		  
+		  /* Filter bars */
+		  .filter-bar {
+			flex-direction: column;
+			gap: 12px;
+		  }
+		  
+		  .filter-group {
+			max-width: 100%;
+		  }
+		  
+		  /* Data rows */
+		  .data-row {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 8px;
+		  }
+		  
+		  /* Charts */
+		  .chart-wrap {
+			height: 250px;
+		  }
+		  
+		  /* Forms */
+		  input,
+		  select,
+		  textarea {
+			font-size: 16px; /* Prevent iOS zoom */
+		  }
+		  
+		  /* Tabs */
+		  .tabs {
+			flex-direction: column;
+		  }
+		  
+		  .tab {
+			width: 100%;
+		  }
+		  
+		  /* Tables - horizontal scroll */
+		  table {
+			display: block;
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+		  }
+		}
+
+		/* ========== 3. TABLET STYLES (Optional) ========== */
+		@media (min-width: 769px) and (max-width: 1024px) {
+		  .sidebar {
+			width: 200px;
+		  }
+		  
+		  .main-content {
+			margin-left: 200px;
+		  }
+		}
+
+
+
+	</style>
 </head>
 <body>
 
@@ -338,6 +655,7 @@
         </svg>
         <div class="name" style="font-size:16px">Port<span>avio</span></div>
       </div>
+	  <button id="mobile-menu-btn">☰</button>
     </div>
     <div class="nav-section">Overview</div>
     <div class="nav-item active"  onclick="showPage('overview',this)"><span class="nav-icon">📊</span> Dashboard</div>
@@ -1352,6 +1670,50 @@ async function loadPred(){
 
 // ── BOOT ──
 if(token){api('/api/auth/profile').then(()=>showApp()).catch(()=>{token=null;localStorage.removeItem('pv_token');});}
+
+// Mobile Menu Toggle
+(function initMobileMenu() {
+  const menuBtn = document.getElementById('mobile-menu-btn');
+  const sidebar = document.querySelector('.sidebar');
+  
+  if (!menuBtn || !sidebar) return;
+  
+  // Toggle menu on button click
+  menuBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const isOpen = sidebar.classList.toggle('menu-open');
+    this.textContent = isOpen ? '✕' : '☰';
+    
+    // Prevent background scrolling when menu is open
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+  });
+  
+  // Close menu when clicking nav items
+  sidebar.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      sidebar.classList.remove('menu-open');
+      menuBtn.textContent = '☰';
+      document.body.style.overflow = '';
+    });
+  });
+  
+  // Close menu and reset on resize to desktop
+  window.addEventListener('resize', function() {
+    if (window.innerWidth > 768 && sidebar.classList.contains('menu-open')) {
+      sidebar.classList.remove('menu-open');
+      menuBtn.textContent = '☰';
+      document.body.style.overflow = '';
+    }
+  });
+})();
+
+
 </script>
 </body>
 </html>
