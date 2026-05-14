@@ -44,6 +44,7 @@ pool.on('error', (err) => console.error('Database error:', err));
 app.use(helmet());
 
 const allowedOrigins = [
+  'https://app.portavio.io',
   'https://portavio-islamkotb-2775s-projects.vercel.app',
   'https://portavio-in8f.vercel.app',
   'https://portavio.vercel.app',
