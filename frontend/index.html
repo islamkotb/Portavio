@@ -965,9 +965,9 @@ function renderRisksWithTabs(){
     el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">No risks match the selected filters</div>';
     return;
   }
-    
-    // Group risks by type
-      const risksByType = {
+  
+  // Group filtered risks by type
+  const risksByType = {
     'all': filtered,
     'issue_at_risk': filtered.filter(r => r.risk_type === 'issue_at_risk'),
     'labeled_risk': filtered.filter(r => r.risk_type === 'labeled_risk'),
@@ -975,148 +975,136 @@ function renderRisksWithTabs(){
     'epic_at_risk': filtered.filter(r => r.risk_type === 'epic_at_risk'),
     'team_overload': filtered.filter(r => r.risk_type === 'team_overload')
   };
-    
-    d.risks.forEach(r => {
-      const type = r.risk_type || 'labeled_risk';
-      if (risksByType[type]) {
-        risksByType[type].push(r);
-      }
-    });
   
-    // Count totals
-    const totalRisks = d.risks.length;
-    const highCount = d.risks.filter(r => r.severity === 'high' || r.severity === 'critical').length;
-    const mediumCount = d.risks.filter(r => r.severity === 'medium').length;
-    const lowCount = d.risks.filter(r => r.severity === 'low').length;
-    
-    // Risk type labels and icons
-    const typeInfo = {
-      'all': { label: 'All Risks', icon: '📊' },
-      'issue_at_risk': { label: 'Issue Risks', icon: '🎫' },
-      'labeled_risk': { label: 'Labeled Risks', icon: '🏷️' },
-      'sprint_at_risk': { label: 'Sprint Risks', icon: '🏃' },
-      'epic_at_risk': { label: 'Epic Risks', icon: '📈' },
-      'team_overload': { label: 'Team Overload', icon: '👥' }
-    };
-    
-    // Build header with total
-    let html = `
-      <div style="margin-bottom:20px;padding:16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;">
-        <div style="font-size:28px;font-weight:700;color:#fff;margin-bottom:6px;">
-          ${totalRisks} Open Risk${totalRisks === 1 ? '' : 's'}
-        </div>
-        <div style="font-size:13px;color:var(--muted);">
-          <span class="badge b-bad">${highCount} High</span>
-          <span class="badge b-warn" style="margin-left:6px">${mediumCount} Medium</span>
-          ${lowCount > 0 ? `<span class="badge b-info" style="margin-left:6px">${lowCount} Low</span>` : ''}
-        </div>
+  // Count totals from FILTERED risks
+  const totalRisks = filtered.length;
+  const highCount = filtered.filter(r => r.severity === 'high' || r.severity === 'critical').length;
+  const mediumCount = filtered.filter(r => r.severity === 'medium').length;
+  const lowCount = filtered.filter(r => r.severity === 'low').length;
+  
+  // Risk type labels and icons
+  const typeInfo = {
+    'all': { label: 'All Risks', icon: '📊' },
+    'issue_at_risk': { label: 'Issue Risks', icon: '🎫' },
+    'labeled_risk': { label: 'Labeled Risks', icon: '🏷️' },
+    'sprint_at_risk': { label: 'Sprint Risks', icon: '🏃' },
+    'epic_at_risk': { label: 'Epic Risks', icon: '📈' },
+    'team_overload': { label: 'Team Overload', icon: '👥' }
+  };
+  
+  // Build header with total
+  let html = `
+    <div style="margin-bottom:20px;padding:16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;">
+      <div style="font-size:28px;font-weight:700;color:#fff;margin-bottom:6px;">
+        ${totalRisks} Open Risk${totalRisks === 1 ? '' : 's'}
       </div>
-    `;
-    
-    // Build tabs
+      <div style="font-size:13px;color:var(--muted);">
+        <span class="badge b-bad">${highCount} High</span>
+        <span class="badge b-warn" style="margin-left:6px">${mediumCount} Medium</span>
+        ${lowCount > 0 ? `<span class="badge b-info" style="margin-left:6px">${lowCount} Low</span>` : ''}
+      </div>
+    </div>
+  `;
+  
+  // Build tabs
+  html += `
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;border-bottom:2px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+  `;
+  
+  Object.keys(typeInfo).forEach(type => {
+    const count = risksByType[type]?.length || 0;
+    const info = typeInfo[type];
     html += `
-      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;border-bottom:2px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+      <button 
+        class="risk-tab ${type === 'all' ? 'active' : ''}" 
+        data-risk-type="${type}"
+        style="padding:8px 16px;background:${type === 'all' ? 'var(--brand)' : 'rgba(255,255,255,0.05)'};
+               border:1px solid ${type === 'all' ? 'var(--brand)' : 'rgba(255,255,255,0.1)'};
+               border-radius:8px;color:${type === 'all' ? 'white' : 'var(--muted)'};
+               cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;
+               font-family:inherit;">
+        ${info.icon} ${info.label} <span style="opacity:0.7">(${count})</span>
+      </button>
     `;
+  });
+  
+  html += `</div>`;
+  
+  // Container for risk cards
+  html += `<div id="risks-cards-container"></div>`;
+  
+  el.innerHTML = html;
+  
+  // Function to render risk cards for a specific type
+  function renderRiskCards(filterType) {
+    const container = document.getElementById('risks-cards-container');
+    const risks = risksByType[filterType] || [];
     
-    Object.keys(typeInfo).forEach(type => {
-      const count = risksByType[type]?.length || 0;
-      const info = typeInfo[type];
-      html += `
-        <button 
-          class="risk-tab ${type === 'all' ? 'active' : ''}" 
-          data-risk-type="${type}"
-          style="padding:8px 16px;background:${type === 'all' ? 'var(--brand)' : 'rgba(255,255,255,0.05)'};
-                 border:1px solid ${type === 'all' ? 'var(--brand)' : 'rgba(255,255,255,0.1)'};
-                 border-radius:8px;color:${type === 'all' ? 'white' : 'var(--muted)'};
-                 cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;
-                 font-family:inherit;">
-          ${info.icon} ${info.label} <span style="opacity:0.7">(${count})</span>
-        </button>
+    if (risks.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:40px;color:var(--muted);">
+          <div style="font-size:48px;margin-bottom:12px;">✅</div>
+          <div style="font-size:16px;font-weight:600;">No ${typeInfo[filterType].label}</div>
+          <div style="font-size:13px;margin-top:4px;">All clear in this category</div>
+        </div>
+      `;
+      return;
+    }
+    
+    let cardsHtml = '';
+    
+    risks.forEach(r => {
+      const severityBadge = r.severity === 'high' || r.severity === 'critical' ? 'b-bad' : 
+                           r.severity === 'medium' ? 'b-warn' : 'b-info';
+      
+      const projectInfo = r.project_name ? r.project_name : 'Portfolio-level';
+      const issueKey = r.jira_issue_key ? ` · ${r.jira_issue_key}` : '';
+      const date = r.identified_date ? ` · ${new Date(r.identified_date).toLocaleDateString()}` : 
+                   r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : '';
+      
+      cardsHtml += `
+        <div class="data-row" style="margin-bottom:12px;padding:14px;background:rgba(239,68,68,0.04);border-left:3px solid ${r.severity === 'high' ? '#ef4444' : r.severity === 'medium' ? '#f59e0b' : '#3b82f6'};">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">${r.title || r.description || 'Untitled Risk'}</div>
+              <div style="font-size:12px;color:var(--muted);">${projectInfo}${issueKey}${date}</div>
+            </div>
+            <span class="badge ${severityBadge}" style="margin-left:12px;">${r.severity || 'medium'}</span>
+          </div>
+          ${r.description && r.description !== r.title ? `<div style="font-size:13px;color:#94a3b8;margin-top:6px;">${r.description}</div>` : ''}
+          ${r.mitigation_plan ? `<div style="font-size:12px;color:#64748b;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">💡 Mitigation: ${r.mitigation_plan}</div>` : ''}
+        </div>
       `;
     });
     
-    html += `</div>`;
-    
-    // Container for risk cards (will be filtered by tabs)
-    html += `<div id="risks-cards-container"></div>`;
-    
-    el.innerHTML = html;
-    
-    // Function to render risk cards for a specific type
-    function renderRiskCards(filterType) {
-      const container = document.getElementById('risks-cards-container');
-      const risks = risksByType[filterType] || [];
-      
-      if (risks.length === 0) {
-        container.innerHTML = `
-          <div style="text-align:center;padding:40px;color:var(--muted);">
-            <div style="font-size:48px;margin-bottom:12px;">✅</div>
-            <div style="font-size:16px;font-weight:600;">No ${typeInfo[filterType].label}</div>
-            <div style="font-size:13px;margin-top:4px;">All clear in this category</div>
-          </div>
-        `;
-        return;
-      }
-      
-      let cardsHtml = '';
-      
-      risks.forEach(r => {
-        const severityBadge = r.severity === 'high' || r.severity === 'critical' ? 'b-bad' : 
-                             r.severity === 'medium' ? 'b-warn' : 'b-info';
-        
-        const projectInfo = r.project_name ? r.project_name : 'Portfolio-level';
-        const issueKey = r.jira_issue_key ? ` · ${r.jira_issue_key}` : '';
-        const date = r.identified_date ? ` · ${new Date(r.identified_date).toLocaleDateString()}` : 
-                     r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : '';
-        
-        cardsHtml += `
-          <div class="data-row" style="margin-bottom:12px;padding:14px;background:rgba(239,68,68,0.04);border-left:3px solid ${r.severity === 'high' ? '#ef4444' : r.severity === 'medium' ? '#f59e0b' : '#3b82f6'};">
-            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
-              <div style="flex:1;">
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">${r.title || r.description || 'Untitled Risk'}</div>
-                <div style="font-size:12px;color:var(--muted);">${projectInfo}${issueKey}${date}</div>
-              </div>
-              <span class="badge ${severityBadge}" style="margin-left:12px;">${r.severity || 'medium'}</span>
-            </div>
-            ${r.description && r.description !== r.title ? `<div style="font-size:13px;color:#94a3b8;margin-top:6px;">${r.description}</div>` : ''}
-            ${r.mitigation_plan ? `<div style="font-size:12px;color:#64748b;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">💡 Mitigation: ${r.mitigation_plan}</div>` : ''}
-          </div>
-        `;
-      });
-      
-      container.innerHTML = cardsHtml;
-    }
-    
-    // Initial render - show all risks
-    renderRiskCards('all');
-    
-    // Add click handlers to tabs
-    document.querySelectorAll('.risk-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        // Update active state
-        document.querySelectorAll('.risk-tab').forEach(t => {
-          t.classList.remove('active');
-          t.style.background = 'rgba(255,255,255,0.05)';
-          t.style.borderColor = 'rgba(255,255,255,0.1)';
-          t.style.color = 'var(--muted)';
-        });
-        
-        tab.classList.add('active');
-        tab.style.background = 'var(--brand)';
-        tab.style.borderColor = 'var(--brand)';
-        tab.style.color = 'white';
-        
-        // Render risks for selected type
-        const type = tab.getAttribute('data-risk-type');
-        renderRiskCards(type);
-      });
-    });
-    
-  }catch(e){
-    console.error(e);
-    el.innerHTML = empty('⚠️','Error loading risks','Could not load risk data');
+    container.innerHTML = cardsHtml;
   }
-
+  
+  // Initial render - show all risks
+  renderRiskCards('all');
+  
+  // Add click handlers to tabs
+  document.querySelectorAll('.risk-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Update active state
+      document.querySelectorAll('.risk-tab').forEach(t => {
+        t.classList.remove('active');
+        t.style.background = 'rgba(255,255,255,0.05)';
+        t.style.borderColor = 'rgba(255,255,255,0.1)';
+        t.style.color = 'var(--muted)';
+      });
+      
+      tab.classList.add('active');
+      tab.style.background = 'var(--brand)';
+      tab.style.borderColor = 'var(--brand)';
+      tab.style.color = 'white';
+      
+      // Render risks for selected type
+      const type = tab.getAttribute('data-risk-type');
+      renderRiskCards(type);
+    });
+  });
+}
 
 
 // ── BLOCKERS ──
