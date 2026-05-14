@@ -910,15 +910,71 @@ async function loadRisks(){
       return;
     }
     
+    // Store all risks globally for filtering
+    window.allRisks = d.risks;
+    
+    // Populate filter dropdowns
+    populateRisksFilters(d.risks);
+    
+    // Render tabs and risks
+    renderRisksWithTabs();
+    
+  }catch(e){
+    console.error(e);
+    el.innerHTML = empty('⚠️','Error loading risks','Could not load risk data');
+  }
+}
+
+function populateRisksFilters(risks){
+  const projects = [...new Set(risks.map(r => r.project_name).filter(Boolean))];
+  const teams = [...new Set(risks.map(r => r.team_name).filter(Boolean))];
+  
+  const projectSelect = document.getElementById('risks-project-filter');
+  const teamSelect = document.getElementById('risks-team-filter');
+  
+  projectSelect.innerHTML = '<option value="">All Projects</option>';
+  projects.sort().forEach(p => {
+    projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+  
+  teamSelect.innerHTML = '<option value="">All Teams</option>';
+  teams.sort().forEach(t => {
+    teamSelect.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+  
+  projectSelect.onchange = renderRisksWithTabs;
+  teamSelect.onchange = renderRisksWithTabs;
+}
+
+function renderRisksWithTabs(){
+  const el = document.getElementById('risks-list');
+  const projectFilter = document.getElementById('risks-project-filter').value;
+  const teamFilter = document.getElementById('risks-team-filter').value;
+  
+  let filtered = window.allRisks;
+  
+  if(projectFilter){
+    filtered = filtered.filter(r => r.project_name === projectFilter);
+  }
+  
+  if(teamFilter){
+    filtered = filtered.filter(r => r.team_name === teamFilter);
+  }
+  
+  if(filtered.length === 0){
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">No risks match the selected filters</div>';
+    return;
+  }
+    
     // Group risks by type
-    const risksByType = {
-      'all': d.risks,
-      'issue_at_risk': [],
-      'labeled_risk': [],
-      'sprint_at_risk': [],
-      'epic_at_risk': [],
-      'team_overload': []
-    };
+      const risksByType = {
+		'all': filtered,
+		'issue_at_risk': filtered.filter(r => r.risk_type === 'issue_at_risk'),
+		'labeled_risk': filtered.filter(r => r.risk_type === 'labeled_risk'),
+		'sprint_at_risk': filtered.filter(r => r.risk_type === 'sprint_at_risk'),
+		'epic_at_risk': filtered.filter(r => r.risk_type === 'epic_at_risk'),
+		'team_overload': filtered.filter(r => r.risk_type === 'team_overload')
+	  };
     
     d.risks.forEach(r => {
       const type = r.risk_type || 'labeled_risk';
