@@ -159,12 +159,68 @@
 
         /* ── PROGRESS ── */
         .pb-wrap { background:rgba(255,255,255,0.08); border-radius:8px; height:12px; overflow:hidden; margin-top:8px; }
-        .pb { height:100%; border-radius:8px; transition:width .4s; box-shadow:0 0 8px rgba(91,106,240,0.3); }
+        .pb { height:100%; border-radius:8px; transition:width .4s; box-shadow:0 0 8px rgba(91,106,240,0.3);uj }
         .pb-brand  { background:linear-gradient(90deg,var(--brand),var(--brand-light)); }
         .pb-green  { background:linear-gradient(90deg,#16a34a,#4ade80); }
         .pb-yellow { background:linear-gradient(90deg,#d97706,#facc15); }
         .pb-red    { background:linear-gradient(90deg,#dc2626,#f87171); }
+		// ============================================================================
+		// 1. ADD FILTER STYLES (add to <style> section around line 166)
+		// ============================================================================
 
+		.filter-bar {
+		  display: flex;
+		  gap: 12px;
+		  margin-bottom: 20px;
+		  padding: 16px;
+		  background: rgba(255,255,255,0.03);
+		  border: 1px solid rgba(255,255,255,0.08);
+		  border-radius: 10px;
+		}
+
+		.filter-group {
+		  flex: 1;
+		  max-width: 250px;
+		}
+
+		.filter-label {
+		  display: block;
+		  font-size: 11px;
+		  font-weight: 600;
+		  color: var(--muted);
+		  text-transform: uppercase;
+		  margin-bottom: 6px;
+		  letter-spacing: 0.5px;
+		}
+
+		.filter-select {
+		  width: 100%;
+		  padding: 8px 12px;
+		  background: rgba(255,255,255,0.05);
+		  border: 1px solid rgba(255,255,255,0.1);
+		  border-radius: 8px;
+		  color: var(--text);
+		  font-size: 14px;
+		  font-family: inherit;
+		  cursor: pointer;
+		  transition: all 0.2s;
+		}
+
+		.filter-select:hover {
+		  border-color: var(--brand);
+		  background: rgba(91,106,240,0.05);
+		}
+
+		.filter-select:focus {
+		  outline: none;
+		  border-color: var(--brand);
+		  background: rgba(91,106,240,0.08);
+		}
+
+		.filter-select option {
+		  background: var(--bg2);
+		  color: var(--text);
+		}
         /* ── BADGES ── */
         .badge { display:inline-flex; align-items:center; padding:2px 9px; border-radius:10px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
         .b-ok   { background:rgba(34,197,94,.12);  color:#4ade80; }
@@ -339,10 +395,70 @@
     <div class="page" id="page-projects"><div id="projects-list"></div></div>
     <div class="page" id="page-teams"><div id="teams-list"></div></div>
     <div class="page" id="page-epics"><div id="epics-list"></div></div>
-    <div class="page" id="page-dependencies"><div class="card"><div class="card-title">🔗 Cross-Project Dependencies</div><div id="deps-list"></div></div></div>
+    <!-- <div class="page" id="page-dependencies"><div class="card"><div class="card-title">🔗 Cross-Project Dependencies</div><div id="deps-list"></div></div></div> --!>
+	<div class="page" id="page-dependencies">
+	  <div class="card">
+		<div class="card-title">🔗 Dependencies</div>
+		<div class="filter-bar">
+		  <div class="filter-group">
+			<label class="filter-label">Project</label>
+			<select class="filter-select" id="deps-project-filter">
+			  <option value="">All Projects</option>
+			</select>
+		  </div>
+		  <div class="filter-group">
+			<label class="filter-label">Team</label>
+			<select class="filter-select" id="deps-team-filter">
+			  <option value="">All Teams</option>
+			</select>
+		  </div>
+		</div>
+		<div id="deps-list"></div>
+	  </div>
+	</div>
     <div class="page" id="page-timeline"><div class="card"><div class="card-title">📅 Roadmap & Milestones</div><div id="timeline-list"></div></div></div>
-    <div class="page" id="page-risks"><div class="card"><div class="card-title">⚠️ Open Risks</div><div id="risks-list"></div></div></div>
-    <div class="page" id="page-blockers"><div class="card"><div class="card-title">🚫 Active Blockers</div><div id="blockers-list"></div></div></div>
+    <!-- <div class="page" id="page-risks"><div class="card"><div class="card-title">⚠️ Open Risks</div><div id="risks-list"></div></div></div> --!>
+	<div class="page" id="page-risks">
+	  <div class="card">
+		<div class="card-title">⚠️ Open Risks</div>
+		<div class="filter-bar">
+		  <div class="filter-group">
+			<label class="filter-label">Project</label>
+			<select class="filter-select" id="risks-project-filter">
+			  <option value="">All Projects</option>
+			</select>
+		  </div>
+		  <div class="filter-group">
+			<label class="filter-label">Team</label>
+			<select class="filter-select" id="risks-team-filter">
+			  <option value="">All Teams</option>
+			</select>
+		  </div>
+		</div>
+		<div id="risks-list"></div>
+	  </div>
+	</div>
+    <!-- <div class="page" id="page-blockers"><div class="card"><div class="card-title">🚫 Active Blockers</div><div id="blockers-list"></div></div></div> --!>
+	<div class="page" id="page-blockers">
+	  <div class="card">
+		<div class="card-title">🚫 Active Blockers</div>
+		<div class="filter-bar">
+		  <div class="filter-group">
+			<label class="filter-label">Project</label>
+			<select class="filter-select" id="blockers-project-filter">
+			  <option value="">All Projects</option>
+			</select>
+		  </div>
+		  <div class="filter-group">
+			<label class="filter-label">Team</label>
+			<select class="filter-select" id="blockers-team-filter">
+			  <option value="">All Teams</option>
+			</select>
+		  </div>
+		</div>
+		<div id="blockers-list"></div>
+	  </div>
+	</div>
     <div class="page" id="page-velocity"><div class="card"><div class="card-title">📈 Team Velocity Trends</div><div class="chart-wrap"><canvas id="vchart"></canvas></div></div></div>
     <div class="page" id="page-predictability"><div class="card"><div class="card-title">🎲 Team Predictability Scores</div><div class="pred-grid" id="pred-grid"></div></div></div>
   </main>
@@ -560,8 +676,83 @@ async function loadDeps(){
   const el=document.getElementById('deps-list');
   try{
     const d=await api('/api/dashboard/dependencies');
-    el.innerHTML=d.dependencies?.length?d.dependencies.map(dep=>`<div class="dep-row"><div><strong style="font-size:13px">${dep.source_epic}</strong><div style="font-size:11px;color:var(--muted)">${dep.source_project}${dep.source_team?' · '+dep.source_team:''}</div></div><span style="color:var(--brand-light);font-size:18px">→</span><span class="dep-type">${dep.dependency_type}</span><span style="color:var(--brand-light);font-size:18px">→</span><div><strong style="font-size:13px">${dep.target_epic}</strong><div style="font-size:11px;color:var(--muted)">${dep.target_project}${dep.target_team?' · '+dep.target_team:''}</div></div><div style="margin-left:auto;display:flex;gap:5px">${badge(dep.source_status)} → ${badge(dep.target_status)}</div></div>`).join(''):empty('🔗','No dependencies','Link epics in Jira using "Blocks" or "Depends on", then re-sync');
-  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+    if(!d.dependencies||d.dependencies.length===0){
+      el.innerHTML=empty('🔗','No dependencies','No cross-team or cross-project dependencies detected');
+      return;
+    }
+    
+    // Store all dependencies globally for filtering
+    window.allDependencies = d.dependencies;
+    
+    // Populate filter dropdowns
+    populateDepsFilters(d.dependencies);
+    
+    // Render with current filters
+    renderDependencies();
+  }catch(e){
+    console.error(e);
+    el.innerHTML=empty('⚠️','Error loading dependencies','Could not load dependency data');
+  }
+}
+
+function populateDepsFilters(dependencies){
+  const projects = [...new Set(dependencies.map(d => d.source_project || d.target_project).filter(Boolean))];
+  const teams = [...new Set(dependencies.map(d => d.source_team || d.target_team).filter(Boolean))];
+  
+  const projectSelect = document.getElementById('deps-project-filter');
+  const teamSelect = document.getElementById('deps-team-filter');
+  
+  // Clear and repopulate
+  projectSelect.innerHTML = '<option value="">All Projects</option>';
+  projects.sort().forEach(p => {
+    projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+  
+  teamSelect.innerHTML = '<option value="">All Teams</option>';
+  teams.sort().forEach(t => {
+    teamSelect.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+  
+  // Add event listeners
+  projectSelect.onchange = renderDependencies;
+  teamSelect.onchange = renderDependencies;
+}
+
+function renderDependencies(){
+  const el = document.getElementById('deps-list');
+  const projectFilter = document.getElementById('deps-project-filter').value;
+  const teamFilter = document.getElementById('deps-team-filter').value;
+  
+  let filtered = window.allDependencies;
+  
+  if(projectFilter){
+    filtered = filtered.filter(d => 
+      d.source_project === projectFilter || d.target_project === projectFilter
+    );
+  }
+  
+  if(teamFilter){
+    filtered = filtered.filter(d => 
+      d.source_team === teamFilter || d.target_team === teamFilter
+    );
+  }
+  
+  if(filtered.length === 0){
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">No dependencies match the selected filters</div>';
+    return;
+  }
+  
+  el.innerHTML = filtered.map(d=>`
+    <div class="data-row">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">${d.source_epic||'Unknown'} → ${d.target_epic||'Unknown'}</div>
+        <div style="font-size:12px;color:#64748b">
+          ${d.source_project||'?'} (${d.source_team||'?'}) → ${d.target_project||'?'} (${d.target_team||'?'})
+        </div>
+      </div>
+      ${badge(d.status||'active')}
+    </div>
+  `).join('');
 }
 
 // ── TIMELINE ──
@@ -706,8 +897,7 @@ async function loadTimeline(){
 
 // ── RISKS ──
 // ============================================================================
-// UPDATED: Risks Page with Tabs
-// Replace the loadRisks() function (lines 680-778) in index.html
+// Risks Page with Tabs
 // ============================================================================
  
 async function loadRisks(){
@@ -878,8 +1068,80 @@ async function loadBlockers(){
   const el=document.getElementById('blockers-list');
   try{
     const d=await api('/api/dashboard/blockers');
-    el.innerHTML=d.blockers?.length?d.blockers.map(b=>`<div class="block-row"><div style="font-size:20px">🚫</div><div style="flex:1"><div style="font-size:14px;font-weight:500;margin-bottom:3px">${b.title}</div><div style="font-size:11px;color:var(--muted)">${[b.team_name&&'👥 '+b.team_name,b.epic_name&&'🎯 '+b.epic_name,b.project_name&&'📁 '+b.project_name,b.jira_issue_key].filter(Boolean).join(' · ')} · Since ${new Date(b.blocked_since).toLocaleDateString()}</div></div><span class="badge b-bad">Active</span></div>`).join(''):empty('✅','No active blockers','Label Jira issues "blocked" or set status to Blocked in your workflow');
-  }catch(e){el.innerHTML=empty('❌','Error',e.message);}
+    if(!d.blockers||d.blockers.length===0){
+      el.innerHTML=empty('✅','No active blockers','All blockers are resolved');
+      return;
+    }
+    
+    // Store all blockers globally for filtering
+    window.allBlockers = d.blockers;
+    
+    // Populate filter dropdowns
+    populateBlockersFilters(d.blockers);
+    
+    // Render with current filters
+    renderBlockers();
+  }catch(e){
+    console.error(e);
+    el.innerHTML=empty('⚠️','Error loading blockers','Could not load blocker data');
+  }
+}
+
+function populateBlockersFilters(blockers){
+  const projects = [...new Set(blockers.map(b => b.project_name).filter(Boolean))];
+  const teams = [...new Set(blockers.map(b => b.team_name).filter(Boolean))];
+  
+  const projectSelect = document.getElementById('blockers-project-filter');
+  const teamSelect = document.getElementById('blockers-team-filter');
+  
+  projectSelect.innerHTML = '<option value="">All Projects</option>';
+  projects.sort().forEach(p => {
+    projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+  
+  teamSelect.innerHTML = '<option value="">All Teams</option>';
+  teams.sort().forEach(t => {
+    teamSelect.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+  
+  projectSelect.onchange = renderBlockers;
+  teamSelect.onchange = renderBlockers;
+}
+
+function renderBlockers(){
+  const el = document.getElementById('blockers-list');
+  const projectFilter = document.getElementById('blockers-project-filter').value;
+  const teamFilter = document.getElementById('blockers-team-filter').value;
+  
+  let filtered = window.allBlockers;
+  
+  if(projectFilter){
+    filtered = filtered.filter(b => b.project_name === projectFilter);
+  }
+  
+  if(teamFilter){
+    filtered = filtered.filter(b => b.team_name === teamFilter);
+  }
+  
+  if(filtered.length === 0){
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">No blockers match the selected filters</div>';
+    return;
+  }
+  
+  el.innerHTML = filtered.map(b=>`
+    <div class="data-row">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px">
+          ${b.jira_issue_key} · ${b.title||'Untitled'}
+        </div>
+        <div style="font-size:12px;color:#64748b">
+          ${b.project_name||'Unknown Project'} · ${b.team_name||'No Team'}
+          ${b.blocked_by_key?` · Blocked by ${b.blocked_by_key}`:''}
+        </div>
+      </div>
+      <span class="badge b-bad">Blocked</span>
+    </div>
+  `).join('');
 }
 
 // ── VELOCITY ──
