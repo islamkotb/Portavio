@@ -49,6 +49,7 @@ const allowedOrigins = [
   'https://portavio.app.io',
   'https://portavio-islamkotb-2775s-projects.vercel.app',
   'https://portavio-in8f.vercel.app',
+  'https://portavio-2chs.vercel.app',
   'https://portavio.vercel.app',
   'https://api.portavio.io',
   'https://portavio-production.up.railway.app',
