@@ -26,13 +26,14 @@ const pool = new Pool({
   }
 });
 
-// Test connection on startup
+// Test connection on startup + backfill any users missing an org
 pool.connect((err, client, release) => {
   if (err) {
     console.error('❌ Database connection error:', err.stack);
   } else {
     console.log('✅ Database connected successfully');
     release();
+    backfillOrganizations();
   }
 });
 
@@ -103,6 +104,47 @@ const decrypt = (text) => {
 };
 const generateToken = (userId, email) =>
   jwt.sign({ userId, email }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+
+const generateOrgSlug = (name) => {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 50);
+  return slug + '-' + crypto.randomBytes(3).toString('hex');
+};
+
+const logAudit = async (organizationId, userId, action, resourceType, resourceId, metadata = {}) => {
+  try {
+    await pool.query(
+      `INSERT INTO audit_log (organization_id, user_id, action, resource_type, resource_id, metadata)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [organizationId, userId, action, resourceType, resourceId, JSON.stringify(metadata)]
+    );
+  } catch (_) {}
+};
+
+async function backfillOrganizations() {
+  try {
+    const users = await pool.query(
+      `SELECT u.id, u.name, u.email FROM users u
+       WHERE NOT EXISTS (SELECT 1 FROM organization_members om WHERE om.user_id = u.id)`
+    );
+    for (const user of users.rows) {
+      const orgName = `${user.name}'s Workspace`;
+      const slug = generateOrgSlug(user.email);
+      const org = await pool.query(
+        `INSERT INTO organizations (name, slug, plan, trial_ends_at, max_users, max_projects, sync_frequency_minutes)
+         VALUES ($1, $2, 'trial', NOW() + INTERVAL '14 days', 3, 5, 1440)
+         RETURNING id`,
+        [orgName, slug]
+      );
+      await pool.query(
+        `INSERT INTO organization_members (organization_id, user_id, role) VALUES ($1, $2, 'owner')`,
+        [org.rows[0].id, user.id]
+      );
+      console.log(`✅ Backfilled org for user: ${user.email}`);
+    }
+  } catch (e) {
+    console.error('⚠️  Org backfill error:', e.message);
+  }
+}
 
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
@@ -1495,18 +1537,65 @@ console.log(`✅ Total risks synced: ${stats.risks} (${risksFromLabels} labeled 
 // AUTH ROUTES
 // ============================================================================
 app.post('/api/auth/register', async (req, res) => {
-  const { email, password, name } = req.body;
+  const { email, password, name, inviteToken } = req.body;
   if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
   try {
-    const existing = await pool.query('SELECT id FROM users WHERE email=$1', [email]);
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length) return res.status(400).json({ error: 'User already exists' });
+
     const hash = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      'INSERT INTO users (email, password_hash, name) VALUES ($1,$2,$3) RETURNING id,email,name',
+    const userResult = await pool.query(
+      `INSERT INTO users (email, password_hash, name, email_verified)
+       VALUES ($1, $2, $3, false) RETURNING id, email, name`,
       [email, hash, name]
     );
-    res.status(201).json({ message: 'Registered', token: generateToken(result.rows[0].id, email), user: result.rows[0] });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+    const user = userResult.rows[0];
+    let organization;
+
+    if (inviteToken) {
+      const invite = await pool.query(
+        `SELECT * FROM invitations WHERE token = $1 AND email = $2
+         AND expires_at > NOW() AND accepted_at IS NULL`,
+        [inviteToken, email]
+      );
+      if (invite.rows.length) {
+        const inv = invite.rows[0];
+        await pool.query(
+          `INSERT INTO organization_members (organization_id, user_id, role, invited_by) VALUES ($1,$2,$3,$4)`,
+          [inv.organization_id, user.id, inv.role, inv.invited_by]
+        );
+        await pool.query('UPDATE invitations SET accepted_at = NOW() WHERE id = $1', [inv.id]);
+        const orgResult = await pool.query('SELECT * FROM organizations WHERE id = $1', [inv.organization_id]);
+        organization = orgResult.rows[0];
+        await logAudit(organization.id, user.id, 'member.joined', 'organization', organization.id, { via: 'invite' });
+      }
+    }
+
+    if (!organization) {
+      const slug = generateOrgSlug(email);
+      const orgResult = await pool.query(
+        `INSERT INTO organizations (name, slug, plan, trial_ends_at, max_users, max_projects, sync_frequency_minutes)
+         VALUES ($1, $2, 'trial', NOW() + INTERVAL '14 days', 3, 5, 1440) RETURNING *`,
+        [`${name}'s Workspace`, slug]
+      );
+      organization = orgResult.rows[0];
+      await pool.query(
+        `INSERT INTO organization_members (organization_id, user_id, role) VALUES ($1, $2, 'owner')`,
+        [organization.id, user.id]
+      );
+      await logAudit(organization.id, user.id, 'organization.created', 'organization', organization.id);
+    }
+
+    res.status(201).json({
+      message: 'Registered successfully',
+      token: generateToken(user.id, user.email),
+      user: { id: user.id, email: user.email, name: user.name },
+      organization: { id: organization.id, name: organization.name, slug: organization.slug, plan: organization.plan },
+    });
+  } catch (e) {
+    console.error('Registration error:', e);
+    res.status(500).json({ error: 'Registration failed' });
+  }
 });
 
 app.post('/api/auth/login', async (req, res) => {
@@ -1517,15 +1606,46 @@ app.post('/api/auth/login', async (req, res) => {
     if (!result.rows.length) return res.status(401).json({ error: 'Invalid credentials' });
     const user = result.rows[0];
     if (!await bcrypt.compare(password, user.password_hash)) return res.status(401).json({ error: 'Invalid credentials' });
-    res.json({ message: 'Login successful', token: generateToken(user.id, user.email), user: { id: user.id, email: user.email, name: user.name, role: user.role } });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+
+    const orgsResult = await pool.query(
+      `SELECT o.id, o.name, o.slug, o.plan, o.subscription_status, om.role
+       FROM organizations o
+       JOIN organization_members om ON om.organization_id = o.id
+       WHERE om.user_id = $1 ORDER BY om.joined_at ASC`,
+      [user.id]
+    );
+    await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
+
+    res.json({
+      message: 'Login successful',
+      token: generateToken(user.id, user.email),
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      organizations: orgsResult.rows,
+    });
+  } catch (e) {
+    console.error('Login error:', e);
+    res.status(500).json({ error: 'Login failed' });
+  }
 });
 
 app.get('/api/auth/profile', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query('SELECT id,email,name,role,created_at FROM users WHERE id=$1', [req.user.userId]);
-    res.json({ user: result.rows[0] });
-  } catch (e) { res.status(500).json({ error: 'Server error' }); }
+    const userResult = await pool.query(
+      'SELECT id, email, name, role, created_at, last_login_at FROM users WHERE id = $1',
+      [req.user.userId]
+    );
+    const orgsResult = await pool.query(
+      `SELECT o.id, o.name, o.slug, o.plan, o.subscription_status, om.role
+       FROM organizations o
+       JOIN organization_members om ON om.organization_id = o.id
+       WHERE om.user_id = $1 ORDER BY om.joined_at ASC`,
+      [req.user.userId]
+    );
+    res.json({ user: userResult.rows[0], organizations: orgsResult.rows });
+  } catch (e) {
+    console.error('Profile error:', e);
+    res.status(500).json({ error: 'Profile fetch failed' });
+  }
 });
 
 // ============================================================================
