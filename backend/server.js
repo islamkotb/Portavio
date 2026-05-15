@@ -1354,6 +1354,13 @@ console.log(`✅ Total risks synced: ${stats.risks} (${risksFromLabels} labeled 
   // ------------------------------------------------------------------
   console.log('🚫 Syncing blockers...');
 
+  // Reset all existing blockers to resolved before re-syncing.
+  // Any blocker not re-activated below is genuinely resolved and should disappear.
+  await pool.query(
+    `UPDATE blockers SET status = 'resolved' WHERE jira_connection_id = $1`,
+    [connectionId]
+  );
+
   // Method 1: Issues with blocked status or labels (existing method)
   console.log('   Method 1: Detecting blocked issues via status/labels...');
   const blockedIssues = await jira.getBlockers();
@@ -1403,11 +1410,13 @@ console.log(`✅ Total risks synced: ${stats.risks} (${risksFromLabels} labeled 
   console.log('   Method 2: Detecting blockers via issue links from synced issues...');
   let blockersFromLinks = 0;
 
-  // Get all issues we've already synced
+  // Get all issues we've already synced (include status to skip resolved ones)
   const syncedIssues = await pool.query(
-	'SELECT jira_issue_key, id, sprint_id, epic_id, project_id FROM issues WHERE jira_connection_id=$1',
+	'SELECT jira_issue_key, id, sprint_id, epic_id, project_id, status FROM issues WHERE jira_connection_id=$1',
 	[connectionId]
   );
+
+  const DONE_STATUSES = ['done', 'closed', 'resolved', 'cancelled', 'canceled', "won't do", 'rejected'];
 
   console.log(`   Checking ${syncedIssues.rows.length} synced issues for blocking links...`);
 
@@ -1446,7 +1455,16 @@ console.log(`✅ Total risks synced: ${stats.risks} (${risksFromLabels} labeled 
 					}
 			
 				if (!blockedIssueKey || !blockingIssueKey) continue;
-			
+
+				// Skip if the syncedIssue itself is resolved (it's either the blocked or blocking issue)
+				const syncedStatus = (syncedIssue.status || '').toLowerCase();
+				if (DONE_STATUSES.some(s => syncedStatus.includes(s))) continue;
+
+				// Skip if the linked issue (from Jira's link object) is already resolved
+				const linkedIssueObj = link.inwardIssue || link.outwardIssue;
+				const linkedStatus = (linkedIssueObj?.fields?.status?.name || '').toLowerCase();
+				if (DONE_STATUSES.some(s => linkedStatus.includes(s))) continue;
+
 				// Use the synced issue data
 				const issueDbId = syncedIssue.id;
 				const epicDbId = syncedIssue.epic_id;
