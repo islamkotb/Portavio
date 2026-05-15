@@ -289,7 +289,7 @@
 			  z-index: 1000;
 			  border-right: none;
 			  border-bottom: 1px solid rgba(255,255,255,0.08);
-			  overflow: hidden;
+			  /* overflow:hidden removed — blocks touch events on iOS Safari */
 			}
 
 			.sidebar-header {
@@ -425,6 +425,8 @@
 		  cursor: pointer;
 		  padding: 8px;
 		  z-index: 10;
+		  touch-action: manipulation; /* eliminates 300ms iOS tap delay */
+		  -webkit-tap-highlight-color: transparent;
 		}
 
 		/* ========== 2. MOBILE RESPONSIVE STYLES ========== */
@@ -448,7 +450,8 @@
 			z-index: 1000;
 			border-right: none;
 			border-bottom: 1px solid rgba(255,255,255,0.08);
-			overflow: hidden;
+			/* overflow:hidden removed — it blocks touch events on iOS Safari;
+			   nav items are already hidden via display:none */
 		  }
 		  
 		  .sidebar-header {
