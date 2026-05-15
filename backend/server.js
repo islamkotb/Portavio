@@ -1030,6 +1030,13 @@ async function syncJiraData(connection) {
 // ------------------------------------------------------------------
 console.log('⚠️  Syncing risks...');
 
+// Reset all risks to closed before re-syncing. Any risk not re-triggered
+// this cycle (e.g. sprint now closed, team load reduced, epic resolved) stays closed.
+await pool.query(
+  `UPDATE risks SET status = 'closed' WHERE jira_connection_id = $1`,
+  [connectionId]
+);
+
 // Method 1: Issues with risk labels (already working)
 console.log('   Method 1: Detecting risks via labels/status...');
 const riskIssues = await jira.getRisks();
