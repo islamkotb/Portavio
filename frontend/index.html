@@ -1563,41 +1563,28 @@ async function loadVelocity(){
     }
     
     const colors=['#5b6af0','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'];
-    
-    // Collect all unique sprint dates/names across all teams
-    const allSprints = new Map(); // date -> {name, date}
-    
-    d.velocityHistory.forEach(team => {
-      team.history.forEach(sprint => {
-        if (!allSprints.has(sprint.sprint_start_date)) {
-          allSprints.set(sprint.sprint_start_date, {
-            name: sprint.sprint_name || 'Sprint',
-            date: sprint.sprint_start_date
-          });
-        }
-      });
-    });
-    
-    // Sort by date and take last 6 unique sprints
-    const sortedSprints = Array.from(allSprints.values())
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(-6);
-    
-    // Create labels from sprint names
-    const labels = sortedSprints.map(s => s.name);
-    const sprintDates = sortedSprints.map(s => s.date);
-    
-    // Build datasets - match by date
+
+    // Align each team independently by sprint position (oldest→newest within last 6).
+    // A shared date-based X-axis causes sprints from different teams/boards to bleed
+    // into each other's lines (e.g. ADMN Sprint 1 appearing on SSP's line).
+    const NUM_POINTS = 6;
+    const labels = ['Sprint -5','Sprint -4','Sprint -3','Sprint -2','Sprint -1','Latest Sprint'];
+
     const datasets = d.velocityHistory.map((team, i) => {
-      // For each team, get their velocity for each sprint date
-      const data = sprintDates.map(date => {
-        const sprint = team.history.find(h => h.sprint_start_date === date);
-        return sprint ? parseFloat(sprint.velocity) || 0 : null;
-      });
-      
+      // Sort ascending by date, take last 6 completed sprints
+      const sorted = [...team.history]
+        .sort((a, b) => new Date(a.sprint_start_date) - new Date(b.sprint_start_date))
+        .slice(-NUM_POINTS);
+
+      // Pad with nulls at the front if fewer than NUM_POINTS sprints
+      const padLen = NUM_POINTS - sorted.length;
+      const data = Array(padLen).fill(null).concat(sorted.map(s => parseFloat(s.velocity) || 0));
+      const sprintNames = Array(padLen).fill(null).concat(sorted.map(s => s.sprint_name || 'Sprint'));
+
       return {
         label: team.teamName,
-        data: data,
+        data,
+        sprintNames,
         borderColor: colors[i % colors.length],
         backgroundColor: colors[i % colors.length] + '18',
         tension: 0.4,
@@ -1607,7 +1594,7 @@ async function loadVelocity(){
         pointBackgroundColor: colors[i % colors.length],
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
-        spanGaps: true  // Connect lines even with null values
+        spanGaps: true
       };
     });
     
@@ -1647,8 +1634,10 @@ async function loadVelocity(){
             callbacks: {
               label: function(context) {
                 const value = context.parsed.y;
-                return value !== null 
-                  ? `${context.dataset.label}: ${value} story points`
+                const name = context.dataset.sprintNames?.[context.dataIndex];
+                const suffix = name ? ` (${name})` : '';
+                return value !== null
+                  ? `${context.dataset.label}: ${value} pts${suffix}`
                   : `${context.dataset.label}: No data`;
               }
             }
