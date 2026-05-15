@@ -44,6 +44,8 @@ pool.on('error', (err) => console.error('Database error:', err));
 app.use(helmet());
 
 const allowedOrigins = [
+  'https://portavio.io',
+  'https://www.portavio.io',
   'https://app.portavio.io',
   'https://admin.portavio.io',
   'https://portavio.app.io',
