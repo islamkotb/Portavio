@@ -1264,24 +1264,23 @@ async function loadRisks(){
   const el=document.getElementById('risks-list');
   try{
     const d=await api('/api/dashboard/risks');
-    
-    if (!d.risks || d.risks.length === 0) {
-      el.innerHTML = empty('✅','No open risks','All risks are resolved or no risks detected');
+    const openRisks=(d.risks||[]).filter(r=>r.status==='open');
+    const resolvedRisks=(d.risks||[]).filter(r=>r.status==='closed');
+
+    if(openRisks.length===0 && resolvedRisks.length===0){
+      el.innerHTML=empty('✅','No risks','All clear — no risks detected');
       return;
     }
-    
-    // Store all risks globally for filtering
-    window.allRisks = d.risks;
-    
-    // Populate filter dropdowns
-    populateRisksFilters(d.risks);
-    
-    // Render tabs and risks
+
+    window.allRisks=openRisks;
+    window.resolvedRisks=resolvedRisks;
+
+    populateRisksFilters([...openRisks,...resolvedRisks]);
     renderRisksWithTabs();
-    
+
   }catch(e){
     console.error(e);
-    el.innerHTML = empty('⚠️','Error loading risks','Could not load risk data');
+    el.innerHTML=empty('⚠️','Error loading risks','Could not load risk data');
   }
 }
 
@@ -1326,6 +1325,10 @@ function renderRisksWithTabs(){
     return;
   }
   
+  let filteredResolved=(window.resolvedRisks||[]);
+  if(projectFilter) filteredResolved=filteredResolved.filter(r=>r.project_name===projectFilter);
+  if(teamFilter) filteredResolved=filteredResolved.filter(r=>r.team_name===teamFilter);
+
   // Group filtered risks by type
   const risksByType = {
     'all': filtered,
@@ -1333,7 +1336,8 @@ function renderRisksWithTabs(){
     'labeled_risk': filtered.filter(r => r.risk_type === 'labeled_risk'),
     'sprint_at_risk': filtered.filter(r => r.risk_type === 'sprint_at_risk'),
     'epic_at_risk': filtered.filter(r => r.risk_type === 'epic_at_risk'),
-    'team_overload': filtered.filter(r => r.risk_type === 'team_overload')
+    'team_overload': filtered.filter(r => r.risk_type === 'team_overload'),
+    'resolved': filteredResolved
   };
   
   // Count totals from FILTERED risks
@@ -1344,12 +1348,13 @@ function renderRisksWithTabs(){
   
   // Risk type labels and icons
   const typeInfo = {
-    'all': { label: 'All Risks', icon: '📊' },
-    'issue_at_risk': { label: 'Issue Risks', icon: '🎫' },
-    'labeled_risk': { label: 'Labeled Risks', icon: '🏷️' },
-    'sprint_at_risk': { label: 'Sprint Risks', icon: '🏃' },
-    'epic_at_risk': { label: 'Epic Risks', icon: '📈' },
-    'team_overload': { label: 'Team Overload', icon: '👥' }
+    'all': { label: 'All Risks', icon: '📊', color: 'var(--brand)' },
+    'issue_at_risk': { label: 'Issue Risks', icon: '🎫', color: 'var(--brand)' },
+    'labeled_risk': { label: 'Labeled Risks', icon: '🏷️', color: 'var(--brand)' },
+    'sprint_at_risk': { label: 'Sprint Risks', icon: '🏃', color: 'var(--brand)' },
+    'epic_at_risk': { label: 'Epic Risks', icon: '📈', color: 'var(--brand)' },
+    'team_overload': { label: 'Team Overload', icon: '👥', color: 'var(--brand)' },
+    'resolved': { label: 'Resolved', icon: '✅', color: '#22c55e' }
   };
   
   // Build header with total
@@ -1374,13 +1379,15 @@ function renderRisksWithTabs(){
   Object.keys(typeInfo).forEach(type => {
     const count = risksByType[type]?.length || 0;
     const info = typeInfo[type];
+    const isActive = type === 'all';
     html += `
-      <button 
-        class="risk-tab ${type === 'all' ? 'active' : ''}" 
+      <button
+        class="risk-tab ${isActive ? 'active' : ''}"
         data-risk-type="${type}"
-        style="padding:8px 16px;background:${type === 'all' ? 'var(--brand)' : 'rgba(255,255,255,0.05)'};
-               border:1px solid ${type === 'all' ? 'var(--brand)' : 'rgba(255,255,255,0.1)'};
-               border-radius:8px;color:${type === 'all' ? 'white' : 'var(--muted)'};
+        data-tab-color="${info.color}"
+        style="padding:8px 16px;background:${isActive ? info.color : 'rgba(255,255,255,0.05)'};
+               border:1px solid ${isActive ? info.color : 'rgba(255,255,255,0.1)'};
+               border-radius:8px;color:${isActive ? 'white' : 'var(--muted)'};
                cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s;
                font-family:inherit;">
         ${info.icon} ${info.label} <span style="opacity:0.7">(${count})</span>
@@ -1399,44 +1406,62 @@ function renderRisksWithTabs(){
   function renderRiskCards(filterType) {
     const container = document.getElementById('risks-cards-container');
     const risks = risksByType[filterType] || [];
-    
+
     if (risks.length === 0) {
+      const label = typeInfo[filterType]?.label || filterType;
       container.innerHTML = `
         <div style="text-align:center;padding:40px;color:var(--muted);">
-          <div style="font-size:48px;margin-bottom:12px;">✅</div>
-          <div style="font-size:16px;font-weight:600;">No ${typeInfo[filterType].label}</div>
-          <div style="font-size:13px;margin-top:4px;">All clear in this category</div>
+          <div style="font-size:48px;margin-bottom:12px;">${filterType === 'resolved' ? '📭' : '✅'}</div>
+          <div style="font-size:16px;font-weight:600;">No ${label}</div>
+          <div style="font-size:13px;margin-top:4px;">${filterType === 'resolved' ? 'No resolved risks to show' : 'All clear in this category'}</div>
         </div>
       `;
       return;
     }
-    
+
+    const isResolved = filterType === 'resolved';
     let cardsHtml = '';
-    
+
     risks.forEach(r => {
-      const severityBadge = r.severity === 'high' || r.severity === 'critical' ? 'b-bad' : 
-                           r.severity === 'medium' ? 'b-warn' : 'b-info';
-      
-      const projectInfo = r.project_name ? r.project_name : 'Portfolio-level';
-      const issueKey = r.jira_issue_key ? ` · ${r.jira_issue_key}` : '';
-      const date = r.identified_date ? ` · ${new Date(r.identified_date).toLocaleDateString()}` : 
-                   r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : '';
-      
-      cardsHtml += `
-        <div class="data-row" style="margin-bottom:12px;padding:14px;background:rgba(239,68,68,0.04);border-left:3px solid ${r.severity === 'high' ? '#ef4444' : r.severity === 'medium' ? '#f59e0b' : '#3b82f6'};">
-          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
-            <div style="flex:1;">
-              <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">${r.title || r.description || 'Untitled Risk'}</div>
-              <div style="font-size:12px;color:var(--muted);">${projectInfo}${issueKey}${date}</div>
+      if (isResolved) {
+        const projectInfo = r.project_name || 'Portfolio-level';
+        const issueKey = r.jira_issue_key ? ` · ${r.jira_issue_key}` : '';
+        const date = r.updated_at ? ` · Resolved ${new Date(r.updated_at).toLocaleDateString()}` : '';
+        cardsHtml += `
+          <div class="data-row" style="margin-bottom:12px;padding:14px;background:rgba(34,197,94,0.04);border-left:3px solid #22c55e;opacity:0.85;">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">${r.title || r.description || 'Untitled Risk'}</div>
+                <div style="font-size:12px;color:var(--muted);">${projectInfo}${issueKey}${date}</div>
+              </div>
+              <span class="badge b-ok" style="margin-left:12px;">Resolved</span>
             </div>
-            <span class="badge ${severityBadge}" style="margin-left:12px;">${r.severity || 'medium'}</span>
+            ${r.description && r.description !== r.title ? `<div style="font-size:13px;color:#94a3b8;margin-top:6px;">${r.description}</div>` : ''}
           </div>
-          ${r.description && r.description !== r.title ? `<div style="font-size:13px;color:#94a3b8;margin-top:6px;">${r.description}</div>` : ''}
-          ${r.mitigation_plan ? `<div style="font-size:12px;color:#64748b;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">💡 Mitigation: ${r.mitigation_plan}</div>` : ''}
-        </div>
-      `;
+        `;
+      } else {
+        const severityBadge = r.severity === 'high' || r.severity === 'critical' ? 'b-bad' :
+                             r.severity === 'medium' ? 'b-warn' : 'b-info';
+        const projectInfo = r.project_name ? r.project_name : 'Portfolio-level';
+        const issueKey = r.jira_issue_key ? ` · ${r.jira_issue_key}` : '';
+        const date = r.identified_date ? ` · ${new Date(r.identified_date).toLocaleDateString()}` :
+                     r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : '';
+        cardsHtml += `
+          <div class="data-row" style="margin-bottom:12px;padding:14px;background:rgba(239,68,68,0.04);border-left:3px solid ${r.severity === 'high' ? '#ef4444' : r.severity === 'medium' ? '#f59e0b' : '#3b82f6'};">
+            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">${r.title || r.description || 'Untitled Risk'}</div>
+                <div style="font-size:12px;color:var(--muted);">${projectInfo}${issueKey}${date}</div>
+              </div>
+              <span class="badge ${severityBadge}" style="margin-left:12px;">${r.severity || 'medium'}</span>
+            </div>
+            ${r.description && r.description !== r.title ? `<div style="font-size:13px;color:#94a3b8;margin-top:6px;">${r.description}</div>` : ''}
+            ${r.mitigation_plan ? `<div style="font-size:12px;color:#64748b;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">💡 Mitigation: ${r.mitigation_plan}</div>` : ''}
+          </div>
+        `;
+      }
     });
-    
+
     container.innerHTML = cardsHtml;
   }
   
@@ -1446,22 +1471,18 @@ function renderRisksWithTabs(){
   // Add click handlers to tabs
   document.querySelectorAll('.risk-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      // Update active state
       document.querySelectorAll('.risk-tab').forEach(t => {
         t.classList.remove('active');
         t.style.background = 'rgba(255,255,255,0.05)';
         t.style.borderColor = 'rgba(255,255,255,0.1)';
         t.style.color = 'var(--muted)';
       });
-      
+      const color = tab.dataset.tabColor || 'var(--brand)';
       tab.classList.add('active');
-      tab.style.background = 'var(--brand)';
-      tab.style.borderColor = 'var(--brand)';
+      tab.style.background = color;
+      tab.style.borderColor = color;
       tab.style.color = 'white';
-      
-      // Render risks for selected type
-      const type = tab.getAttribute('data-risk-type');
-      renderRiskCards(type);
+      renderRiskCards(tab.getAttribute('data-risk-type'));
     });
   });
 }
@@ -1472,19 +1493,17 @@ async function loadBlockers(){
   const el=document.getElementById('blockers-list');
   try{
     const d=await api('/api/dashboard/blockers');
-    if(!d.blockers||d.blockers.length===0){
-      el.innerHTML=empty('✅','No active blockers','All blockers are resolved');
+    window.openBlockers=(d.blockers||[]).filter(b=>b.status==='active');
+    window.resolvedBlockers=(d.blockers||[]).filter(b=>b.status==='resolved');
+    window.blockersStatusTab=window.blockersStatusTab||'active';
+
+    if(window.openBlockers.length===0 && window.resolvedBlockers.length===0){
+      el.innerHTML=empty('✅','No blockers','All clear');
       return;
     }
-    
-    // Store all blockers globally for filtering
-    window.allBlockers = d.blockers;
-    
-    // Populate filter dropdowns
-    populateBlockersFilters(d.blockers);
-    
-    // Render with current filters
-    renderBlockers();
+
+    populateBlockersFilters([...window.openBlockers,...window.resolvedBlockers]);
+    renderBlockersWithTabs();
   }catch(e){
     console.error(e);
     el.innerHTML=empty('⚠️','Error loading blockers','Could not load blocker data');
@@ -1492,48 +1511,73 @@ async function loadBlockers(){
 }
 
 function populateBlockersFilters(blockers){
-  const projects = [...new Set(blockers.map(b => b.project_name).filter(Boolean))];
-  const teams = [...new Set(blockers.map(b => b.team_name).filter(Boolean))];
-  
-  const projectSelect = document.getElementById('blockers-project-filter');
-  const teamSelect = document.getElementById('blockers-team-filter');
-  
-  projectSelect.innerHTML = '<option value="">All Projects</option>';
-  projects.sort().forEach(p => {
-    projectSelect.innerHTML += `<option value="${p}">${p}</option>`;
+  const projects=[...new Set(blockers.map(b=>b.project_name).filter(Boolean))];
+  const teams=[...new Set(blockers.map(b=>b.team_name).filter(Boolean))];
+  const projectSelect=document.getElementById('blockers-project-filter');
+  const teamSelect=document.getElementById('blockers-team-filter');
+  projectSelect.innerHTML='<option value="">All Projects</option>';
+  projects.sort().forEach(p=>{projectSelect.innerHTML+=`<option value="${p}">${p}</option>`;});
+  teamSelect.innerHTML='<option value="">All Teams</option>';
+  teams.sort().forEach(t=>{teamSelect.innerHTML+=`<option value="${t}">${t}</option>`;});
+  projectSelect.onchange=renderBlockers;
+  teamSelect.onchange=renderBlockers;
+}
+
+function renderBlockersWithTabs(){
+  const el=document.getElementById('blockers-list');
+  const activeCount=window.openBlockers.length;
+  const resolvedCount=window.resolvedBlockers.length;
+  const tab=window.blockersStatusTab||'active';
+
+  el.innerHTML=`
+    <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:2px solid rgba(255,255,255,0.05);padding-bottom:8px;">
+      <button class="blocker-status-tab" data-tab="active"
+        style="padding:8px 16px;background:${tab==='active'?'var(--brand)':'rgba(255,255,255,0.05)'};
+               border:1px solid ${tab==='active'?'var(--brand)':'rgba(255,255,255,0.1)'};
+               border-radius:8px;color:${tab==='active'?'white':'var(--muted)'};
+               cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;">
+        🚫 Active <span style="opacity:0.7">(${activeCount})</span>
+      </button>
+      <button class="blocker-status-tab" data-tab="resolved"
+        style="padding:8px 16px;background:${tab==='resolved'?'#22c55e':'rgba(255,255,255,0.05)'};
+               border:1px solid ${tab==='resolved'?'#22c55e':'rgba(255,255,255,0.1)'};
+               border-radius:8px;color:${tab==='resolved'?'white':'var(--muted)'};
+               cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;">
+        ✅ Resolved <span style="opacity:0.7">(${resolvedCount})</span>
+      </button>
+    </div>
+    <div id="blockers-cards"></div>
+  `;
+
+  document.querySelectorAll('.blocker-status-tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      window.blockersStatusTab=btn.dataset.tab;
+      renderBlockersWithTabs();
+    });
   });
-  
-  teamSelect.innerHTML = '<option value="">All Teams</option>';
-  teams.sort().forEach(t => {
-    teamSelect.innerHTML += `<option value="${t}">${t}</option>`;
-  });
-  
-  projectSelect.onchange = renderBlockers;
-  teamSelect.onchange = renderBlockers;
+
+  renderBlockers();
 }
 
 function renderBlockers(){
-  const el = document.getElementById('blockers-list');
-  const projectFilter = document.getElementById('blockers-project-filter').value;
-  const teamFilter = document.getElementById('blockers-team-filter').value;
-  
-  let filtered = window.allBlockers;
-  
-  if(projectFilter){
-    filtered = filtered.filter(b => b.project_name === projectFilter);
-  }
-  
-  if(teamFilter){
-    filtered = filtered.filter(b => b.team_name === teamFilter);
-  }
-  
-  if(filtered.length === 0){
-    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">No blockers match the selected filters</div>';
+  const container=document.getElementById('blockers-cards');
+  if(!container) return;
+  const projectFilter=document.getElementById('blockers-project-filter').value;
+  const teamFilter=document.getElementById('blockers-team-filter').value;
+  const isResolved=window.blockersStatusTab==='resolved';
+  const source=isResolved?window.resolvedBlockers:window.openBlockers;
+
+  let filtered=source;
+  if(projectFilter) filtered=filtered.filter(b=>b.project_name===projectFilter);
+  if(teamFilter) filtered=filtered.filter(b=>b.team_name===teamFilter);
+
+  if(filtered.length===0){
+    container.innerHTML=`<div style="padding:40px;text-align:center;color:var(--muted)">${isResolved?'No resolved blockers':'No active blockers'}${projectFilter||teamFilter?' match the selected filters':''}</div>`;
     return;
   }
-  
-  el.innerHTML = filtered.map(b=>`
-    <div class="data-row">
+
+  container.innerHTML=filtered.map(b=>`
+    <div class="data-row" style="${isResolved?'opacity:0.8;':''}">
       <div style="flex:1">
         <div style="font-size:13px;font-weight:500;margin-bottom:4px">
           ${b.jira_issue_key} · ${b.title||'Untitled'}
@@ -1541,9 +1585,10 @@ function renderBlockers(){
         <div style="font-size:12px;color:#64748b">
           ${b.project_name||'Unknown Project'} · ${b.team_name||'No Team'}
           ${b.blocked_by_key?` · Blocked by ${b.blocked_by_key}`:''}
+          ${isResolved&&b.updated_at?` · Resolved ${new Date(b.updated_at).toLocaleDateString()}`:''}
         </div>
       </div>
-      <span class="badge b-bad">Blocked</span>
+      <span class="badge ${isResolved?'b-ok':'b-bad'}">${isResolved?'Resolved':'Blocked'}</span>
     </div>
   `).join('');
 }
@@ -1568,7 +1613,7 @@ async function loadVelocity(){
     // A shared date-based X-axis causes sprints from different teams/boards to bleed
     // into each other's lines (e.g. ADMN Sprint 1 appearing on SSP's line).
     const NUM_POINTS = 6;
-    const labels = ['Sprint -5','Sprint -4','Sprint -3','Sprint -2','Sprint -1','Current Sprint'];
+    const labels = ['Sprint -5','Sprint -4','Sprint -3','Sprint -2','Sprint -1','Last Sprint'];
 
     const datasets = d.velocityHistory.map((team, i) => {
       // Sort ascending by date, take last 6 completed sprints

@@ -1952,8 +1952,8 @@ app.get('/api/dashboard/risks', authenticateToken, async (req, res) => {
       LEFT JOIN teams t3 ON r.risk_type = 'team_overload' AND r.title LIKE '%' || t3.name || '%'
       LEFT JOIN sprints s2 ON r.risk_type = 'sprint_at_risk' AND r.title LIKE '%' || s2.name || '%'
       LEFT JOIN teams t4 ON s2.team_id = t4.id
-      WHERE r.jira_connection_id = $1 AND r.status = 'open'
-      ORDER BY r.id, CASE r.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END
+      WHERE r.jira_connection_id = $1
+      ORDER BY r.id, CASE r.status WHEN 'open' THEN 0 ELSE 1 END, CASE r.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END
     `, [conn.id]);
 
 
@@ -1976,8 +1976,8 @@ app.get('/api/dashboard/blockers', authenticateToken, async (req, res) => {
       LEFT JOIN teams t    ON b.team_id    = t.id
       LEFT JOIN epics e    ON b.epic_id    = e.id
       LEFT JOIN projects p ON b.project_id = p.id
-      WHERE b.jira_connection_id = $1 AND b.status = 'active'
-      ORDER BY b.blocked_since DESC
+      WHERE b.jira_connection_id = $1
+      ORDER BY CASE b.status WHEN 'active' THEN 0 ELSE 1 END, b.blocked_since DESC
     `, [conn.id]);
 
     res.json({ blockers: result.rows });
