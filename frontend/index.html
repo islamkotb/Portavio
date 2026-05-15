@@ -1568,7 +1568,7 @@ async function loadVelocity(){
     // A shared date-based X-axis causes sprints from different teams/boards to bleed
     // into each other's lines (e.g. ADMN Sprint 1 appearing on SSP's line).
     const NUM_POINTS = 6;
-    const labels = ['Sprint -5','Sprint -4','Sprint -3','Sprint -2','Sprint -1','Latest Sprint'];
+    const labels = ['Sprint -5','Sprint -4','Sprint -3','Sprint -2','Sprint -1','Current Sprint'];
 
     const datasets = d.velocityHistory.map((team, i) => {
       // Sort ascending by date, take last 6 completed sprints
