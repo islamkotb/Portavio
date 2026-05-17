@@ -518,7 +518,7 @@
 <section class="hero">
     <div class="hero-container">
         <div class="badge">
-            ✨ Now with multi-tenancy & Stripe billing
+            ✨ Jira-connected portfolio intelligence
         </div>
         <h1>
             Your Jira portfolio,<br>
@@ -586,15 +586,35 @@
         <div class="section-header">
             <span class="section-tag">Pricing</span>
             <h2>Simple, transparent pricing</h2>
-            <p>Start free, upgrade when you're ready. All plans include 14-day free trial.</p>
+            <p>Start free, upgrade when you're ready. All plans include a 14-day free trial.</p>
         </div>
+
+        <!-- Billing toggle -->
+        <div style="display:flex;justify-content:center;margin-bottom:3rem;">
+            <div style="display:inline-flex;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:4px;gap:4px;">
+                <button id="toggle-monthly" onclick="setBilling('monthly')"
+                    style="padding:10px 28px;border-radius:9px;border:none;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;background:linear-gradient(135deg,var(--brand),var(--accent));color:white;transition:all 0.2s;">
+                    Monthly
+                </button>
+                <button id="toggle-annual" onclick="setBilling('annual')"
+                    style="padding:10px 28px;border-radius:9px;border:none;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;background:transparent;color:var(--muted);transition:all 0.2s;">
+                    Annual <span style="font-size:12px;color:var(--success);font-weight:700;">· 2 months free</span>
+                </button>
+            </div>
+        </div>
+
         <div class="pricing-grid">
             <!-- Starter -->
             <div class="pricing-card">
                 <h3>Starter</h3>
                 <p class="desc">For small engineering teams</p>
-                <div class="price">$49<span>/month</span></div>
-                <p class="price-note">Billed monthly</p>
+                <div class="price">
+                    <span class="price-amount" data-monthly="$49" data-annual="$41">$49</span><span class="price-period">/month</span>
+                </div>
+                <p class="price-note">
+                    <span class="billing-note-monthly">Billed monthly · $49/mo</span>
+                    <span class="billing-note-annual" style="display:none;">Billed annually · $490/yr <span style="color:var(--success);font-weight:700;">Save $98</span></span>
+                </p>
                 <ul class="pricing-features">
                     <li><span class="check">✓</span> Up to 10 users</li>
                     <li><span class="check">✓</span> Up to 20 projects</li>
@@ -611,8 +631,13 @@
                 <div class="popular-badge">Most Popular</div>
                 <h3>Pro</h3>
                 <p class="desc">For growing engineering orgs</p>
-                <div class="price">$149<span>/month</span></div>
-                <p class="price-note">Billed monthly</p>
+                <div class="price">
+                    <span class="price-amount" data-monthly="$149" data-annual="$124">$149</span><span class="price-period">/month</span>
+                </div>
+                <p class="price-note">
+                    <span class="billing-note-monthly">Billed monthly · $149/mo</span>
+                    <span class="billing-note-annual" style="display:none;">Billed annually · $1,490/yr <span style="color:var(--success);font-weight:700;">Save $298</span></span>
+                </p>
                 <ul class="pricing-features">
                     <li><span class="check">✓</span> Up to 50 users</li>
                     <li><span class="check">✓</span> Unlimited projects</li>
@@ -629,8 +654,13 @@
             <div class="pricing-card">
                 <h3>Enterprise</h3>
                 <p class="desc">For large organizations</p>
-                <div class="price">$499<span>/month</span></div>
-                <p class="price-note">Billed annually</p>
+                <div class="price">
+                    <span class="price-amount" data-monthly="$499" data-annual="$416">$499</span><span class="price-period">/month</span>
+                </div>
+                <p class="price-note">
+                    <span class="billing-note-monthly">Billed monthly · $499/mo</span>
+                    <span class="billing-note-annual" style="display:none;">Billed annually · $4,990/yr <span style="color:var(--success);font-weight:700;">Save $998</span></span>
+                </p>
                 <ul class="pricing-features">
                     <li><span class="check">✓</span> Unlimited users</li>
                     <li><span class="check">✓</span> Unlimited projects</li>
@@ -646,21 +676,37 @@
     </div>
 </section>
 
+<script>
+function setBilling(mode) {
+    const isAnnual = mode === 'annual';
+
+    // Toggle button styles
+    const mBtn = document.getElementById('toggle-monthly');
+    const aBtn = document.getElementById('toggle-annual');
+    mBtn.style.background = isAnnual ? 'transparent' : 'linear-gradient(135deg,var(--brand),var(--accent))';
+    mBtn.style.color = isAnnual ? 'var(--muted)' : 'white';
+    aBtn.style.background = isAnnual ? 'linear-gradient(135deg,var(--brand),var(--accent))' : 'transparent';
+    aBtn.style.color = isAnnual ? 'white' : 'var(--muted)';
+
+    // Swap prices
+    document.querySelectorAll('.price-amount').forEach(el => {
+        el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
+    });
+
+    // Swap billing notes
+    document.querySelectorAll('.billing-note-monthly').forEach(el => { el.style.display = isAnnual ? 'none' : 'inline'; });
+    document.querySelectorAll('.billing-note-annual').forEach(el => { el.style.display = isAnnual ? 'inline' : 'none'; });
+}
+</script>
+
 <!-- CTA -->
 <section class="cta">
     <div class="cta-container">
         <h2>Ready to see your portfolio clearly?</h2>
         <p>Start your 14-day free trial. No credit card required. Set up in 5 minutes.</p>
         <div class="hero-cta">
-            <!-- <a href="/login.html?register=true" class="btn btn-primary">Start Free Trial →</a> -->
-			<!-- Sign up button -->
-			<a href="/login.html?register=true" class="cta-button">Start Free Trial</a>
-			<!-- Sign in button -->
-			<a href="/login.html" class="cta-button-secondary">Sign In</a>
-
-			<!-- Get started buttons -->
-			<a href="/login.html?register=true" class="cta-button">Get Started</a>
-
+            <a href="/login.html?register=true" class="cta-button">Start Free Trial →</a>
+            <a href="/login.html" class="cta-button-secondary">Sign In</a>
         </div>
     </div>
 </section>
