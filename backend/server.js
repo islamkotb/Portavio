@@ -2196,14 +2196,43 @@ app.patch('/api/admin/organizations/:id/subscription', authenticateToken, requir
   const { subscription_status } = req.body;
   try {
 	const result = await pool.query(`
-	  UPDATE organizations 
+	  UPDATE organizations
 	  SET subscription_status = $1, updated_at = NOW()
-	  WHERE id = $2 
+	  WHERE id = $2
 	  RETURNING *
 	`, [subscription_status, id]);
 	res.json(result.rows[0]);
   } catch (error) {
 	res.status(500).json({ error: 'Failed to update subscription' });
+  }
+});
+
+app.patch('/api/admin/organizations/:id/trial', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { action, days } = req.body;
+  try {
+    let result;
+    if (action === 'never_expire') {
+      result = await pool.query(`
+        UPDATE organizations
+        SET subscription_status = 'active', trial_ends_at = '2099-01-01', updated_at = NOW()
+        WHERE id = $1 RETURNING *
+      `, [id]);
+    } else if (action === 'extend' && days > 0 && days <= 365) {
+      result = await pool.query(`
+        UPDATE organizations
+        SET
+          trial_ends_at = GREATEST(COALESCE(trial_ends_at, NOW()), NOW()) + ($2 || ' days')::INTERVAL,
+          subscription_status = CASE WHEN subscription_status NOT IN ('active') THEN 'trialing' ELSE subscription_status END,
+          updated_at = NOW()
+        WHERE id = $1 RETURNING *
+      `, [id, days]);
+    } else {
+      return res.status(400).json({ error: 'Invalid action or days value' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update trial' });
   }
 });
 
