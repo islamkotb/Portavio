@@ -727,19 +727,20 @@
       </div>
       <div class="topbar-actions">
         <div id="conn-badge" class="conn-badge conn-off">● Not Connected</div>
+        <button class="btn-outline" id="update-creds-btn" style="display:none;font-size:12px;padding:6px 14px" onclick="showUpdateCredentials()">Update Token</button>
         <button class="btn-sync" id="sync-btn" onclick="triggerSync()">🔄 Sync Jira</button>
       </div>
     </div>
 
     <!-- Connect panel -->
     <div class="connect-panel" id="connect-panel">
-      <h3>🔌 Connect Your Jira Instance</h3>
-      <p>Enter your Jira credentials to start pulling real portfolio data into Portavio.</p>
+      <h3 id="connect-panel-title">🔌 Connect Your Jira Instance</h3>
+      <p id="connect-panel-desc">Enter your Jira credentials to start pulling real portfolio data into Portavio.</p>
       <div class="connect-form">
         <div class="fg"><label>Jira URL</label><input type="text" id="jira-url" placeholder="https://company.atlassian.net"></div>
         <div class="fg"><label>Email</label><input type="email" id="jira-email" placeholder="you@company.com"></div>
         <div class="fg"><label>API Token</label><input type="password" id="jira-token" placeholder="Your Jira API token"></div>
-        <button class="btn-connect" onclick="connectJira()">Connect →</button>
+        <button class="btn-connect" id="connect-btn" onclick="connectJira()">Connect →</button>
       </div>
       <p style="margin-top:10px;font-size:11px;color:#334155">Get your API token at: <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" style="color:var(--brand-light)">id.atlassian.com ↗</a></p>
     </div>
@@ -920,17 +921,47 @@ async function checkConn(){
   try{
     const d=await api('/api/jira/status');
     const b=document.getElementById('conn-badge');
-    if(d.connected&&d.connection.is_active){b.className='conn-badge conn-on';b.textContent='● Connected';document.getElementById('connect-panel').style.display='none';if(d.connection.last_sync)document.getElementById('sync-status').textContent=`Last sync: ${new Date(d.connection.last_sync).toLocaleString()}`;}
-    else{b.className='conn-badge conn-off';b.textContent='● Not Connected';document.getElementById('connect-panel').style.display='block';}
+    const updateBtn=document.getElementById('update-creds-btn');
+    if(d.connected&&d.connection.is_active){
+      b.className='conn-badge conn-on';b.textContent='● Connected';
+      document.getElementById('connect-panel').style.display='none';
+      updateBtn.style.display='inline-block';
+      document.getElementById('jira-url').value=d.connection.jira_url||'';
+      document.getElementById('jira-email').value=d.connection.jira_email||'';
+      if(d.connection.last_sync)document.getElementById('sync-status').textContent=`Last sync: ${new Date(d.connection.last_sync).toLocaleString()}`;
+    }else{
+      b.className='conn-badge conn-off';b.textContent='● Not Connected';
+      updateBtn.style.display='none';
+      document.getElementById('connect-panel').style.display='block';
+      document.getElementById('connect-panel-title').textContent='🔌 Connect Your Jira Instance';
+      document.getElementById('connect-panel-desc').textContent='Enter your Jira credentials to start pulling real portfolio data into Portavio.';
+      document.getElementById('connect-btn').textContent='Connect →';
+    }
   }catch(e){}
+}
+function showUpdateCredentials(){
+  const panel=document.getElementById('connect-panel');
+  if(panel.style.display==='block'){panel.style.display='none';return;}
+  document.getElementById('connect-panel-title').textContent='🔑 Update Jira Credentials';
+  document.getElementById('connect-panel-desc').textContent='Enter your new API token. URL and email are pre-filled from your existing connection.';
+  document.getElementById('connect-btn').textContent='Update →';
+  document.getElementById('jira-token').value='';
+  panel.style.display='block';
+  document.getElementById('jira-token').focus();
 }
 async function connectJira(){
   const jiraUrl=document.getElementById('jira-url').value.trim(), jiraEmail=document.getElementById('jira-email').value.trim(), jiraApiToken=document.getElementById('jira-token').value.trim();
   if(!jiraUrl||!jiraEmail||!jiraApiToken)return alert('All fields required');
-  const b=document.querySelector('.btn-connect');b.textContent='Connecting…';b.disabled=true;
-  try{await api('/api/jira/connect','POST',{jiraUrl,jiraEmail,jiraApiToken});await checkConn();alert('✅ Connected! Click "Sync Jira" to load your data.');}
+  const b=document.getElementById('connect-btn');
+  const isUpdate=b.textContent.startsWith('Update');
+  b.textContent='Saving…';b.disabled=true;
+  try{
+    await api('/api/jira/connect','POST',{jiraUrl,jiraEmail,jiraApiToken});
+    await checkConn();
+    alert(isUpdate?'✅ Token updated successfully!':'✅ Connected! Click "Sync Jira" to load your data.');
+  }
   catch(e){alert('Connection failed: '+e.message);}
-  finally{b.textContent='Connect →';b.disabled=false;}
+  finally{b.textContent=isUpdate?'Update →':'Connect →';b.disabled=false;}
 }
 async function triggerSync(){
   const b=document.getElementById('sync-btn');b.textContent='⏳ Syncing…';b.disabled=true;
