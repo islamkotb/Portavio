@@ -2117,8 +2117,13 @@ app.get('/', (req, res) => res.json({
 
 const requireAdmin = async (req, res, next) => {
   try {
-	const user = await pool.query('SELECT role FROM users WHERE id = $1', [req.user.userId]);
-	if (!user.rows.length || user.rows[0].role !== 'admin') {
+	const user = await pool.query('SELECT role, email FROM users WHERE id = $1', [req.user.userId]);
+	if (!user.rows.length) {
+	  return res.status(403).json({ error: 'Admin access required' });
+	}
+	const { role, email } = user.rows[0];
+	const isAdmin = role === 'admin' || (process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL);
+	if (!isAdmin) {
 	  return res.status(403).json({ error: 'Admin access required' });
 	}
 	next();
