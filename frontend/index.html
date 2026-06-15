@@ -127,6 +127,7 @@
 
         /* ── STAT CARDS ── */
         .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+        .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
         .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:24px; }
 
         .card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:20px; transition:border-color .2s; margin-bottom:16px; }
@@ -139,6 +140,8 @@
         .sc-violet::before { background:#8b5cf6; }
         .sc-cyan::before   { background:#06b6d4; }
         .sc-green::before  { background:#10b981; }
+        .sc-yellow::before { background:#f59e0b; }
+        .sc-red::before    { background:#ef4444; }
         .stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; font-weight:600; }
         .stat-value { font-size:38px; font-weight:800; margin:8px 0 4px; letter-spacing:-1px; }
         .stat-sub { font-size:11px; color:#4ade80; font-weight:500; }
@@ -247,8 +250,8 @@
         /* scrollbar */
         ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:#1e2a40; border-radius:10px; }
 
-        @media(max-width:1100px){ .grid-4{grid-template-columns:repeat(2,1fr);} }
-        @media(max-width:768px) { .sidebar{display:flex;} .main-content{margin-left:0;padding:20px;} .grid-4,.grid-2{grid-template-columns:1fr;} .auth-wrap{flex-direction:column;width:95%;} .auth-left{display:none;} .auth-right{width:100%;} }
+        @media(max-width:1100px){ .grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);} }
+        @media(max-width:768px) { .sidebar{display:flex;} .main-content{margin-left:0;padding:20px;} .grid-4,.grid-3,.grid-2{grid-template-columns:1fr;} .auth-wrap{flex-direction:column;width:95%;} .auth-left{display:none;} .auth-right{width:100%;} }
 	
 
 		  
@@ -338,6 +341,7 @@
 		  
 		  /* 2-column grids on tablet */
 		  .stats-grid,
+		  .grid-3,
 		  #ov-stats {
 			grid-template-columns: repeat(2, 1fr) !important;
 		  }
@@ -747,7 +751,7 @@
 
     <!-- Pages -->
     <div class="page active" id="page-overview">
-      <div class="grid-4" id="ov-stats"></div>
+      <div class="grid-3" id="ov-stats"></div>
       <div class="grid-2">
         <div class="card"><div class="card-title">📁 Project Health</div><div id="ov-projects"></div></div>
         <div class="card"><div class="card-title">👥 Team Load</div><div id="ov-teams"></div></div>
@@ -985,12 +989,23 @@ function loadPage(){({overview:loadOv,projects:loadProjects,teams:loadTeams,epic
 // ── OVERVIEW ──
 async function loadOv(){
   try{
-    const[ov,teams,projects]=await Promise.all([api('/api/dashboard/overview'),api('/api/dashboard/teams'),api('/api/dashboard/projects')]);
+    const[ov,teams,projects,risksData,blockersData]=await Promise.all([
+      api('/api/dashboard/overview'),
+      api('/api/dashboard/teams'),
+      api('/api/dashboard/projects'),
+      api('/api/dashboard/risks').catch(()=>({risks:[]})),
+      api('/api/dashboard/blockers').catch(()=>({blockers:[]}))
+    ]);
+    const openRisks=(risksData.risks||[]).filter(r=>r.status==='open').length;
+    const highRisks=(risksData.risks||[]).filter(r=>r.status==='open'&&(r.severity==='high'||r.severity==='critical')).length;
+    const activeBlockers=(blockersData.blockers||[]).filter(b=>b.status==='active').length;
     document.getElementById('ov-stats').innerHTML=`
       <div class="card stat-card sc-purple"><div class="stat-label">Projects</div><div class="stat-value" style="color:var(--brand-light)">${ov.projects.total}</div><div class="stat-sub">${ov.projects.byHealth?.find(h=>h.health==='on-track')?.total||0} on track</div></div>
       <div class="card stat-card sc-violet"><div class="stat-label">Teams</div><div class="stat-value" style="color:#a78bfa">${ov.teams.total}</div></div>
       <div class="card stat-card sc-cyan"><div class="stat-label">Epics</div><div class="stat-value" style="color:#22d3ee">${ov.epics.total}</div></div>
-      <div class="card stat-card sc-green"><div class="stat-label">Issues Tracked</div><div class="stat-value" style="color:#4ade80">${ov.issues?.total||0}</div><div class="stat-sub">Avg velocity: ${ov.avgVelocity}</div></div>`;
+      <div class="card stat-card sc-green"><div class="stat-label">Issues Tracked</div><div class="stat-value" style="color:#4ade80">${ov.issues?.total||0}</div><div class="stat-sub">Avg velocity: ${ov.avgVelocity}</div></div>
+      <div class="card stat-card sc-yellow"><div class="stat-label">Open Risks</div><div class="stat-value" style="color:#fbbf24">${openRisks}</div>${highRisks>0?`<div class="stat-sub" style="color:#f87171">${highRisks} high severity</div>`:'<div class="stat-sub">All clear</div>'}</div>
+      <div class="card stat-card sc-red"><div class="stat-label">Active Blockers</div><div class="stat-value" style="color:#f87171">${activeBlockers}</div><div class="stat-sub">${activeBlockers===0?'None blocking':'Needs attention'}</div></div>`;
     document.getElementById('ov-projects').innerHTML=projects.projects?.length?projects.projects.map(p=>`<div class="data-row" style="flex-direction:column;align-items:flex-start"><div style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px"><div style="flex:1;font-size:13px;font-weight:500">${p.project_name} <span style="font-size:10px;color:#334155">${p.jira_project_key}</span></div>${badge(p.health)}<span style="font-size:11px;color:var(--muted)">${p.epic_count}e · ${Math.round(p.avg_epic_progress||0)}%</span></div>${bar(Math.round(p.avg_epic_progress||0),'pb-brand')}</div>`).join(''):empty('📁','No projects','Sync Jira to see projects');
     document.getElementById('ov-teams').innerHTML=teams.teams?.length?teams.teams.map(t=>`<div class="data-row" style="flex-direction:column;align-items:flex-start"><div style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px"><span style="font-size:13px;font-weight:500">${t.team_name}</span><span style="font-size:11px;color:var(--muted)">Load: ${t.current_load}%</span></div>${bar(t.current_load,lc(t.current_load))}</div>`).join(''):empty('👥','No teams','Sync Jira to see teams');
   }catch(e){console.error(e);}
